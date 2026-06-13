@@ -7,6 +7,7 @@ const NAV_ITEMS = [
   { path: '/cab', icon: '◈', label: 'Cab Auto', glyph: 'cab' },
   { path: '/metro', icon: '⬟', label: 'Metro', glyph: 'metro' },
   { path: '/pmpl', icon: '⬡', label: 'PMPL Bus', glyph: 'bus' },
+  { path: '/local', icon: '🚆', label: 'Local Trains', glyph: 'metro' },
   { path: '/route-planner', icon: '◉', label: 'Route Planner', glyph: 'route' },
   { path: '/tickets', icon: '◈', label: 'Tickets', glyph: 'tickets' },
   { path: '/parking', icon: '⬟', label: 'Parking', glyph: 'parking' },

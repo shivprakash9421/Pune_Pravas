@@ -2,6 +2,7 @@ import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import MainLayout from '../layouts/MainLayout';
 
+// Import all your pages
 import Home from '../pages/Home';
 import AIChat from '../pages/AIChat';
 import CabAuto from '../pages/CabAuto';
@@ -14,7 +15,7 @@ import Wallet from '../pages/Wallet';
 import Profile from '../pages/Profile';
 import Notifications from '../pages/Notifications';
 import AdminDashboard from '../pages/AdminDashboard';
-
+import Local from '../pages/Local'; // 
 export default function AppRoutes() {
   return (
     <MainLayout>
@@ -24,6 +25,10 @@ export default function AppRoutes() {
         <Route path="/cab" element={<CabAuto />} />
         <Route path="/metro" element={<Metro />} />
         <Route path="/pmpl" element={<PMPL />} />
+        
+        {/* 👈 ADD THIS ROUTE FOR LOCAL TRAINS */}
+        <Route path="/local" element={<Local />} /> 
+        
         <Route path="/route-planner" element={<RoutePlanner />} />
         <Route path="/tickets" element={<Tickets />} />
         <Route path="/parking" element={<Parking />} />
