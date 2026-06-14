@@ -1,407 +1,298 @@
 import React, { useState, useEffect, useMemo } from 'react';
 
-// --- Data Models & Constants ---
+// --- Enhanced Data Models ---
+// Added distances (km) from Pune and typical local platform numbers
 const STATIONS = [
-  "Pune Jn", "Shivaji Nagar", "Khadki", "Dapodi", "Kasarwadi",
-  "Pimpri", "Chinchwad", "Akurdi", "Dehu Road", "Begdewadi",
-  "Ghorawadi", "Talegaon", "Vadgaon", "Kanhe", "Kamshet",
-  "Malavli", "Lonavala"
+  { name: "Pune Jn", km: 0, pf: "6" },
+  { name: "Shivaji Nagar", km: 2, pf: "1" },
+  { name: "Khadki", km: 6, pf: "1" },
+  { name: "Dapodi", km: 8, pf: "2" },
+  { name: "Kasarwadi", km: 11, pf: "1" },
+  { name: "Pimpri", km: 14, pf: "1" },
+  { name: "Chinchwad", km: 16, pf: "2" },
+  { name: "Akurdi", km: 20, pf: "1" },
+  { name: "Dehu Road", km: 25, pf: "3" },
+  { name: "Begdewadi", km: 28, pf: "1" },
+  { name: "Ghorawadi", km: 31, pf: "1" },
+  { name: "Talegaon", km: 34, pf: "2" },
+  { name: "Vadgaon", km: 38, pf: "1" },
+  { name: "Kanhe", km: 43, pf: "1" },
+  { name: "Kamshet", km: 48, pf: "1" },
+  { name: "Malavli", km: 56, pf: "1" },
+  { name: "Lonavala", km: 64, pf: "3" }
 ];
 
-// Mock Timetable (24H format)
-const PUNE_TO_LONAVALA = [
-  { trainNo: "99806", dep: "05:45", arr: "07:05" },
-  { trainNo: "99808", dep: "06:30", arr: "07:50" },
-  { trainNo: "99810", dep: "08:05", arr: "09:25" },
-  { trainNo: "99814", dep: "11:15", arr: "12:35" },
-  { trainNo: "99816", dep: "15:00", arr: "16:20" },
-  { trainNo: "99818", dep: "17:15", arr: "18:35" },
-  { trainNo: "99822", dep: "19:05", arr: "20:25" },
-  { trainNo: "99824", dep: "21:00", arr: "22:20" },
-];
+// Mock Schedule with base departure times (we calculate intermediate stops dynamically)
+const SCHEDULES = {
+  PUNE_LON: [
+    { no: "99808", time: "06:30" }, { no: "99810", time: "08:05" }, 
+    { no: "99814", time: "11:15" }, { no: "99816", time: "15:00" }, 
+    { no: "99818", time: "17:15" }, { no: "99822", time: "19:05" }
+  ],
+  LON_PUNE: [
+    { no: "99807", time: "07:30" }, { no: "99809", time: "08:20" }, 
+    { no: "99811", time: "10:05" }, { no: "99815", time: "14:50" }, 
+    { no: "99817", time: "17:30" }, { no: "99819", time: "19:35" }
+  ]
+};
 
-const LONAVALA_TO_PUNE = [
-  { trainNo: "99805", dep: "05:20", arr: "06:40" },
-  { trainNo: "99807", dep: "07:30", arr: "08:50" },
-  { trainNo: "99809", dep: "08:20", arr: "09:40" },
-  { trainNo: "99811", dep: "10:05", arr: "11:25" },
-  { trainNo: "99815", dep: "14:50", arr: "16:10" },
-  { trainNo: "99817", dep: "17:30", arr: "18:50" },
-  { trainNo: "99819", dep: "19:35", arr: "20:55" },
-  { trainNo: "99821", dep: "21:45", arr: "23:05" },
-];
+// Train speed constant for simulation (mins per km)
+const MINS_PER_KM = 1.3; 
+const STOP_DURATION = 1; // 1 min halt
 
-// Utility: Convert HH:MM to minutes from midnight
-const timeToMinutes = (timeStr) => {
+// --- Helper Functions ---
+const parseTime = (timeStr) => {
   const [h, m] = timeStr.split(':').map(Number);
   return h * 60 + m;
 };
 
-// Utility: Format minutes to 12H AM/PM
-const formatTime = (timeStr) => {
-  const [h, m] = timeStr.split(':');
+const formatTime = (totalMins) => {
+  const h = Math.floor(totalMins / 60) % 24;
+  const m = Math.floor(totalMins % 60);
   const d = new Date();
   d.setHours(h, m);
   return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
 };
 
-// --- Main Component ---
+// --- Icons ---
+const TrainIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="#00f5ff" xmlns="http://www.w3.org/2000/svg">
+    <path d="M4 16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8c0-3.5-3.58-4-8-4s-8 .5-8 4v8zm4 0a1.5 1.5 0 110-3 1.5 1.5 0 010 3zm8 0a1.5 1.5 0 110-3 1.5 1.5 0 010 3z" />
+    <path d="M12 2L12 4M8 22L10 18M16 22L14 18" stroke="#00f5ff" strokeWidth="2" strokeLinecap="round" />
+  </svg>
+);
+
 export default function Local() {
-  const [activeTab, setActiveTab] = useState('live'); // 'live', 'book', 'tickets'
-  const [direction, setDirection] = useState('PUNE_LON'); // 'PUNE_LON' or 'LON_PUNE'
-  
-  // Booking State
-  const [source, setSource] = useState(STATIONS[0]);
-  const [destination, setDestination] = useState(STATIONS[STATIONS.length - 1]);
-  const [ticketClass, setTicketClass] = useState('II'); // 'II', 'I'
-  const [myTickets, setMyTickets] = useState([]);
+  const [direction, setDirection] = useState('PUNE_LON');
+  const [currentMins, setCurrentMins] = useState(0);
+  const [selectedTrain, setSelectedTrain] = useState(null); // Holds details of clicked train
 
-  // Live Time State
-  const [currentMinutes, setCurrentMinutes] = useState(0);
-
-  // Update clock every minute for live tracking
+  // Live Clock Update
   useEffect(() => {
-    const updateClock = () => {
+    const updateTime = () => {
       const now = new Date();
-      setCurrentMinutes(now.getHours() * 60 + now.getMinutes());
+      setCurrentMins(now.getHours() * 60 + now.getMinutes());
     };
-    updateClock();
-    const interval = setInterval(updateClock, 60000);
-    return () => clearInterval(interval);
+    updateTime();
+    const int = setInterval(updateTime, 30000); // update every 30s
+    return () => clearInterval(int);
   }, []);
 
-  // Calculate live train positions
-  const activeTrains = useMemo(() => {
-    const schedule = direction === 'PUNE_LON' ? PUNE_TO_LONAVALA : LONAVALA_TO_PUNE;
-    const stations = direction === 'PUNE_LON' ? STATIONS : [...STATIONS].reverse();
-    
-    return schedule.map(train => {
-      const depMins = timeToMinutes(train.dep);
-      const arrMins = timeToMinutes(train.arr);
-      const totalDuration = arrMins - depMins;
-      
-      let status = 'UPCOMING';
-      let progress = 0;
-      let currentStationIndex = 0;
+  // Generate full route with arrival/dep times for a specific train
+  const generateTrainRoute = (train, dir) => {
+    const routeStations = dir === 'PUNE_LON' ? STATIONS : [...STATIONS].reverse();
+    let accumMins = parseTime(train.time);
+    let prevKm = routeStations[0].km;
 
-      if (currentMinutes >= arrMins) {
-        status = 'COMPLETED';
-        progress = 100;
-        currentStationIndex = stations.length - 1;
-      } else if (currentMinutes >= depMins && currentMinutes < arrMins) {
-        status = 'RUNNING';
-        progress = ((currentMinutes - depMins) / totalDuration) * 100;
-        // Estimate station index based on progress
-        currentStationIndex = Math.floor((progress / 100) * (stations.length - 1));
-      }
+    return routeStations.map((station, index) => {
+      const distance = Math.abs(station.km - prevKm);
+      const travelTime = distance * MINS_PER_KM;
+      
+      accumMins += travelTime;
+      const arr = accumMins;
+      accumMins += (index === 0 || index === routeStations.length - 1) ? 0 : STOP_DURATION;
+      const dep = accumMins;
+      prevKm = station.km;
+
+      let status = 'UPCOMING';
+      if (currentMins > dep) status = 'PASSED';
+      else if (currentMins >= arr && currentMins <= dep) status = 'HALTED';
+      else if (index > 0 && currentMins > (arr - travelTime) && currentMins < arr) status = 'RUNNING';
 
       return {
-        ...train,
-        status,
-        progress,
-        currentStation: stations[currentStationIndex],
-        nextStation: stations[Math.min(currentStationIndex + 1, stations.length - 1)]
+        ...station,
+        arr: formatTime(arr),
+        dep: formatTime(dep),
+        arrRaw: arr,
+        depRaw: dep,
+        status
       };
-    }).filter(t => t.status === 'RUNNING' || t.status === 'UPCOMING');
-  }, [currentMinutes, direction]);
-
-  // Handle Fare Calculation
-  const getFare = () => {
-    const idx1 = STATIONS.indexOf(source);
-    const idx2 = STATIONS.indexOf(destination);
-    if (idx1 === idx2) return 0;
-    
-    const distance = Math.abs(idx1 - idx2);
-    // Simulated fare logic
-    const baseII = 5;
-    const baseI = 50;
-    
-    const fareII = Math.min(30, baseII + Math.floor(distance * 1.5));
-    const fareI = Math.min(150, baseI + Math.floor(distance * 6));
-    
-    return ticketClass === 'II' ? fareII : fareI;
+    });
   };
 
-  const handleBookTicket = () => {
-    const fare = getFare();
-    if (fare === 0) {
-      alert("Source and Destination cannot be the same.");
-      return;
-    }
-
-    const newTicket = {
-      id: `PNQ-${Math.floor(Math.random() * 1000000)}`,
-      source,
-      destination,
-      ticketClass,
-      fare,
-      date: new Date().toLocaleDateString('en-IN'),
-      time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
-      validUntil: new Date(Date.now() + 2 * 60 * 60 * 1000).toLocaleTimeString('en-IN') // 2 hrs validity
-    };
-
-    setMyTickets([newTicket, ...myTickets]);
-    setActiveTab('tickets');
-  };
-
-  // --- Styled Components (Inline for portability) ---
-  const tabStyle = (isActive) => ({
-    flex: 1,
-    padding: '12px 0',
-    textAlign: 'center',
-    background: isActive ? 'rgba(0, 245, 255, 0.1)' : 'transparent',
-    color: isActive ? '#00f5ff' : '#94a3b8',
-    borderBottom: isActive ? '2px solid #00f5ff' : '2px solid transparent',
-    cursor: 'pointer',
-    fontWeight: isActive ? '600' : '500',
-    fontSize: '14px',
-    transition: 'all 0.2s',
-  });
-
-  const cardStyle = {
-    background: 'rgba(255, 255, 255, 0.03)',
-    border: '1px solid rgba(255, 255, 255, 0.1)',
-    borderRadius: '16px',
-    padding: '20px',
-    marginBottom: '20px'
-  };
-
-  const selectStyle = {
-    width: '100%',
-    padding: '12px',
-    background: 'rgba(0,0,0,0.3)',
-    border: '1px solid rgba(255,255,255,0.2)',
-    borderRadius: '8px',
-    color: '#fff',
-    outline: 'none',
-    fontSize: '14px',
-    marginTop: '6px'
-  };
-
-  return (
-    <div style={{ maxWidth: '800px', margin: '0 auto', paddingBottom: '40px' }}>
+  // Compute list of all trains and their current summary status
+  const activeTrainsList = useMemo(() => {
+    return SCHEDULES[direction].map(train => {
+      const route = generateTrainRoute(train, direction);
+      const start = route[0];
+      const end = route[route.length - 1];
       
-      {/* Header & Direction Toggle */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-        <div>
-          <h1 style={{ fontSize: '24px', fontWeight: '700', color: '#fff', margin: 0 }}>Local Trains</h1>
-          <p style={{ color: '#94a3b8', fontSize: '14px', marginTop: '4px' }}>Pune - Lonavala Suburban Network</p>
-        </div>
+      let currentStatusStr = `Departs ${start.dep} from ${start.name}`;
+      let state = 'UPCOMING';
+      
+      if (currentMins >= end.arrRaw) {
+        currentStatusStr = `Reached ${end.name} at ${end.arr}`;
+        state = 'COMPLETED';
+      } else if (currentMins >= start.depRaw) {
+        state = 'ACTIVE';
+        const runningTowards = route.find(s => s.status === 'RUNNING' || s.status === 'HALTED' || s.status === 'UPCOMING');
+        if (runningTowards) {
+          currentStatusStr = runningTowards.status === 'HALTED' 
+            ? `At ${runningTowards.name} (PF ${runningTowards.pf})` 
+            : `Next stop: ${runningTowards.name} at ${runningTowards.arr}`;
+        }
+      }
 
+      return { ...train, route, currentStatusStr, state, start, end };
+    }).filter(t => t.state !== 'COMPLETED'); // Hide completed trains
+  }, [direction, currentMins]);
+
+
+  // --- Render Functions ---
+
+  const renderTrainList = () => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.4)', padding: '12px 16px', borderRadius: '12px' }}>
+        <h2 style={{ fontSize: '18px', color: '#fff', margin: 0 }}>Pune ⇄ Lonavala</h2>
         <button 
           onClick={() => setDirection(d => d === 'PUNE_LON' ? 'LON_PUNE' : 'PUNE_LON')}
-          style={{
-            display: 'flex', alignItems: 'center', gap: '8px',
-            background: 'rgba(139, 92, 246, 0.1)',
-            border: '1px solid rgba(139, 92, 246, 0.3)',
-            color: '#8b5cf6', padding: '10px 16px', borderRadius: '24px',
-            cursor: 'pointer', fontWeight: '600', fontSize: '13px'
-          }}
+          style={{ background: 'rgba(0, 245, 255, 0.1)', border: '1px solid #00f5ff', color: '#00f5ff', padding: '6px 12px', borderRadius: '20px', fontSize: '12px', cursor: 'pointer' }}
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/></svg>
-          {direction === 'PUNE_LON' ? 'Pune → Lonavala' : 'Lonavala → Pune'}
+          Swap Direction ⇅
         </button>
       </div>
 
-      {/* Tabs */}
-      <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.1)', marginBottom: '24px' }}>
-        <div style={tabStyle(activeTab === 'live')} onClick={() => setActiveTab('live')}>Live Tracking</div>
-        <div style={tabStyle(activeTab === 'book')} onClick={() => setActiveTab('book')}>Timetable & Book</div>
-        <div style={tabStyle(activeTab === 'tickets')} onClick={() => setActiveTab('tickets')}>
-          My Tickets {myTickets.length > 0 && <span style={{background: '#00f5ff', color: '#000', padding: '2px 6px', borderRadius: '10px', fontSize: '11px', marginLeft: '6px'}}>{myTickets.length}</span>}
-        </div>
-      </div>
-
-      {/* TAB 1: Live Tracking */}
-      {activeTab === 'live' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          
-          <div style={{...cardStyle, background: 'linear-gradient(145deg, rgba(0, 245, 255, 0.05), rgba(139, 92, 246, 0.05))'}}>
-            <h3 style={{ color: '#fff', margin: '0 0 16px 0', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#00ff88', boxShadow: '0 0 8px #00ff88' }} />
-              Active Trains on Route
-            </h3>
-
-            {activeTrains.filter(t => t.status === 'RUNNING').length === 0 ? (
-               <p style={{ color: '#94a3b8', fontSize: '14px', textAlign: 'center', padding: '20px 0' }}>No trains currently running. Check upcoming schedule.</p>
-            ) : (
-              activeTrains.filter(t => t.status === 'RUNNING').map((train, i) => (
-                <div key={i} style={{ padding: '16px', background: 'rgba(0,0,0,0.4)', borderRadius: '12px', marginBottom: '12px', borderLeft: '4px solid #00f5ff' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-                    <div style={{ color: '#fff', fontWeight: '700', fontSize: '16px' }}>Train #{train.trainNo}</div>
-                    <div style={{ color: '#00f5ff', fontSize: '13px', fontWeight: '600' }}>Running</div>
-                  </div>
-                  
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#94a3b8', marginBottom: '8px' }}>
-                    <span>Dep: {formatTime(train.dep)}</span>
-                    <span>Arr: {formatTime(train.arr)}</span>
-                  </div>
-
-                  {/* Progress Bar */}
-                  <div style={{ height: '6px', background: 'rgba(255,255,255,0.1)', borderRadius: '4px', overflow: 'hidden', marginBottom: '8px' }}>
-                    <div style={{ width: `${train.progress}%`, height: '100%', background: 'linear-gradient(90deg, #00f5ff, #8b5cf6)', borderRadius: '4px', transition: 'width 1s linear' }} />
-                  </div>
-
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#fff' }}>
-                    <span>Near: <span style={{color: '#8b5cf6', fontWeight: '600'}}>{train.currentStation}</span></span>
-                    <span>Next: {train.nextStation}</span>
-                  </div>
-                </div>
-              ))
-            )}
+      {activeTrainsList.length === 0 ? (
+        <p style={{ color: '#94a3b8', textAlign: 'center' }}>No active trains right now.</p>
+      ) : (
+        activeTrainsList.map(train => (
+          <div 
+            key={train.no} 
+            onClick={() => setSelectedTrain(train)}
+            style={{ 
+              background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', 
+              borderRadius: '12px', padding: '16px', cursor: 'pointer', transition: 'background 0.2s',
+              borderLeft: train.state === 'ACTIVE' ? '4px solid #00ff88' : '4px solid rgba(255,255,255,0.2)'
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+              <div style={{ color: '#fff', fontWeight: '700', fontSize: '16px' }}>Local {train.no}</div>
+              <div style={{ color: train.state === 'ACTIVE' ? '#00ff88' : '#94a3b8', fontSize: '12px', fontWeight: '600' }}>
+                {train.state === 'ACTIVE' ? 'LIVE NOW' : 'SCHEDULED'}
+              </div>
+            </div>
+            <div style={{ color: '#00f5ff', fontSize: '14px', marginBottom: '8px', fontWeight: '500' }}>
+              {train.currentStatusStr}
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#94a3b8' }}>
+              <span>{train.start.name} ({train.start.dep})</span>
+              <span>{train.end.name} ({train.end.arr})</span>
+            </div>
           </div>
-
-          <h3 style={{ color: '#fff', marginTop: '8px', fontSize: '16px' }}>Upcoming Departures</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
-             {activeTrains.filter(t => t.status === 'UPCOMING').slice(0, 4).map((train, i) => (
-                <div key={i} style={{...cardStyle, marginBottom: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-                  <div>
-                    <div style={{ color: '#fff', fontWeight: '600', fontSize: '15px' }}>#{train.trainNo} Local</div>
-                    <div style={{ color: '#94a3b8', fontSize: '12px', marginTop: '4px' }}>Pune ↔ Lonavala</div>
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ color: '#00f5ff', fontWeight: '700', fontSize: '16px' }}>{formatTime(train.dep)}</div>
-                    <div style={{ color: '#94a3b8', fontSize: '12px' }}>ETA {formatTime(train.arr)}</div>
-                  </div>
-                </div>
-             ))}
-          </div>
-
-        </div>
+        ))
       )}
+    </div>
+  );
 
-      {/* TAB 2: Timetable & Booking */}
-      {activeTab === 'book' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+  const renderDetailedTracker = () => {
+    // Recompute route live just in case time ticks while viewing
+    const route = generateTrainRoute(selectedTrain, direction);
+
+    return (
+      <div style={{ background: 'rgba(6, 13, 31, 0.9)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)', overflow: 'hidden' }}>
+        
+        {/* Header Bar */}
+        <div style={{ background: 'linear-gradient(90deg, rgba(0, 245, 255, 0.1), transparent)', padding: '16px', borderBottom: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', gap: '16px', position: 'sticky', top: 0, zIndex: 10, backdropFilter: 'blur(10px)' }}>
+          <button 
+            onClick={() => setSelectedTrain(null)}
+            style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '24px', cursor: 'pointer', padding: 0 }}
+          >
+            ←
+          </button>
+          <div>
+            <div style={{ color: '#fff', fontWeight: '700', fontSize: '18px' }}>Train {selectedTrain.no}</div>
+            <div style={{ color: '#00f5ff', fontSize: '12px' }}>{direction === 'PUNE_LON' ? 'Pune to Lonavala' : 'Lonavala to Pune'}</div>
+          </div>
+        </div>
+
+        {/* Vertical Timeline */}
+        <div style={{ padding: '24px 16px', position: 'relative' }}>
           
-          {/* Booking Widget */}
-          <div style={{...cardStyle, position: 'relative'}}>
-            <h3 style={{ color: '#fff', margin: '0 0 20px 0', fontSize: '18px' }}>Book Ticket</h3>
+          {/* Background vertical line */}
+          <div style={{ position: 'absolute', left: '42px', top: '40px', bottom: '40px', width: '4px', background: 'rgba(255,255,255,0.1)', borderRadius: '2px' }} />
+
+          {route.map((station, i) => {
+            const isPassed = station.status === 'PASSED';
+            const isCurrent = station.status === 'HALTED' || station.status === 'RUNNING';
             
-            <div style={{ display: 'flex', gap: '16px', flexDirection: window.innerWidth < 600 ? 'column' : 'row' }}>
-              <div style={{ flex: 1 }}>
-                <label style={{ fontSize: '12px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>From Station</label>
-                <select style={selectStyle} value={source} onChange={e => setSource(e.target.value)}>
-                  {STATIONS.map(s => <option key={`src-${s}`} value={s} style={{background: '#060d1f'}}>{s}</option>)}
-                </select>
-              </div>
-              
-              <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', paddingBottom: '10px' }}>
-                <button 
-                  onClick={() => { const temp = source; setSource(destination); setDestination(temp); }}
-                  style={{ background: 'rgba(0, 245, 255, 0.1)', border: '1px solid rgba(0, 245, 255, 0.3)', color: '#00f5ff', borderRadius: '50%', width: '36px', height: '36px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                >
-                  ⇄
-                </button>
-              </div>
+            // Text color logic based on status
+            const textColor = isPassed ? '#475569' : (isCurrent ? '#fff' : '#cbd5e1');
+            const timeColor = isPassed ? '#334155' : (isCurrent ? '#00f5ff' : '#64748b');
+            const dotColor = isPassed ? '#334155' : (isCurrent ? '#00f5ff' : '#cbd5e1');
 
-              <div style={{ flex: 1 }}>
-                <label style={{ fontSize: '12px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>To Station</label>
-                <select style={selectStyle} value={destination} onChange={e => setDestination(e.target.value)}>
-                  {STATIONS.map(s => <option key={`dst-${s}`} value={s} style={{background: '#060d1f'}}>{s}</option>)}
-                </select>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: '16px', marginTop: '20px' }}>
-              <div style={{ flex: 1 }}>
-                 <label style={{ fontSize: '12px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Class</label>
-                 <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
-                    <button 
-                      onClick={() => setTicketClass('II')}
-                      style={{ flex: 1, padding: '10px', borderRadius: '8px', border: ticketClass === 'II' ? '1px solid #00f5ff' : '1px solid rgba(255,255,255,0.2)', background: ticketClass === 'II' ? 'rgba(0,245,255,0.1)' : 'transparent', color: '#fff', cursor: 'pointer', transition: 'all 0.2s' }}
-                    >Second (II)</button>
-                    <button 
-                      onClick={() => setTicketClass('I')}
-                      style={{ flex: 1, padding: '10px', borderRadius: '8px', border: ticketClass === 'I' ? '1px solid #8b5cf6' : '1px solid rgba(255,255,255,0.2)', background: ticketClass === 'I' ? 'rgba(139,92,246,0.1)' : 'transparent', color: '#fff', cursor: 'pointer', transition: 'all 0.2s' }}
-                    >First (I)</button>
-                 </div>
-              </div>
-            </div>
-
-            {/* Fare Summary & CTA */}
-            <div style={{ marginTop: '24px', padding: '16px', background: 'rgba(0,0,0,0.3)', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <div style={{ fontSize: '12px', color: '#94a3b8' }}>Total Fare</div>
-                <div style={{ fontSize: '28px', fontWeight: '800', color: '#00ff88' }}>₹{getFare()}</div>
-              </div>
-              <button 
-                onClick={handleBookTicket}
-                style={{ background: 'linear-gradient(135deg, #00f5ff, #0066ff)', color: '#000', border: 'none', padding: '14px 28px', borderRadius: '8px', fontWeight: '700', fontSize: '15px', cursor: 'pointer', boxShadow: '0 4px 15px rgba(0, 245, 255, 0.3)' }}
-              >
-                Pay & Book
-              </button>
-            </div>
-          </div>
-
-        </div>
-      )}
-
-      {/* TAB 3: My Tickets */}
-      {activeTab === 'tickets' && (
-        <div>
-          {myTickets.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '60px 20px', color: '#94a3b8' }}>
-               <svg style={{margin: '0 auto 16px', display: 'block'}} width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>
-               <p>No active tickets found.</p>
-               <button onClick={() => setActiveTab('book')} style={{background: 'transparent', border: '1px solid #00f5ff', color: '#00f5ff', padding: '8px 16px', borderRadius: '6px', marginTop: '12px', cursor: 'pointer'}}>Book a Ticket</button>
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              {myTickets.map(ticket => (
-                <div key={ticket.id} style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(0,0,0,0.5) 100%)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)', overflow: 'hidden' }}>
+            return (
+              <div key={i} style={{ display: 'flex', position: 'relative', marginBottom: '32px', opacity: isPassed ? 0.6 : 1 }}>
+                
+                {/* Timeline Column (Distances & Nodes) */}
+                <div style={{ width: '60px', display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative', zIndex: 2 }}>
+                  <div style={{ fontSize: '10px', color: '#64748b', marginBottom: '4px' }}>{station.km} km</div>
                   
-                  {/* Ticket Header */}
-                  <div style={{ padding: '16px 20px', background: 'rgba(0, 245, 255, 0.1)', borderBottom: '1px dashed rgba(255,255,255,0.2)', display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: '#00f5ff', fontWeight: '700', letterSpacing: '0.1em', fontSize: '14px' }}>PUNE PRAVAS PASS</span>
-                    <span style={{ color: '#fff', fontSize: '14px' }}>{ticket.id}</span>
+                  {/* Node Circle */}
+                  <div style={{ 
+                    width: isCurrent ? '16px' : '12px', 
+                    height: isCurrent ? '16px' : '12px', 
+                    borderRadius: '50%', 
+                    background: isCurrent ? '#060d1f' : dotColor, 
+                    border: isCurrent ? `4px solid #00f5ff` : 'none',
+                    boxShadow: isCurrent ? '0 0 10px #00f5ff' : 'none',
+                    transition: 'all 0.3s'
+                  }} />
+
+                  {/* Draw Train between nodes if running */}
+                  {station.status === 'RUNNING' && i > 0 && (
+                     <div style={{ position: 'absolute', top: '-24px', left: '50%', transform: 'translateX(-50%)', background: '#060d1f', padding: '4px', borderRadius: '50%', border: '1px solid #00f5ff', animation: 'pulse 1.5s infinite' }}>
+                       <TrainIcon />
+                     </div>
+                  )}
+                  {/* Draw Train on node if halted */}
+                  {station.status === 'HALTED' && (
+                     <div style={{ position: 'absolute', top: '16px', left: '50%', transform: 'translateX(-50%)', background: '#060d1f', padding: '4px', borderRadius: '50%', border: '1px solid #00ff88', animation: 'pulse 1.5s infinite' }}>
+                       <TrainIcon />
+                     </div>
+                  )}
+                </div>
+
+                {/* Details Column */}
+                <div style={{ flex: 1, paddingLeft: '16px', display: 'flex', justifyContent: 'space-between', paddingTop: '16px' }}>
+                  <div>
+                    <div style={{ fontSize: '16px', fontWeight: isCurrent ? '700' : '500', color: textColor }}>
+                      {station.name}
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
+                      Platform {station.pf}
+                    </div>
                   </div>
-
-                  {/* Ticket Body */}
-                  <div style={{ padding: '24px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    
-                    <div style={{ flex: 1 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
-                        <div>
-                          <div style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase' }}>Source</div>
-                          <div style={{ fontSize: '18px', fontWeight: '700', color: '#fff' }}>{ticket.source}</div>
-                        </div>
-                        <div style={{ padding: '0 16px', color: '#8b5cf6', display: 'flex', alignItems: 'center' }}>➔</div>
-                        <div style={{ textAlign: 'right' }}>
-                          <div style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase' }}>Destination</div>
-                          <div style={{ fontSize: '18px', fontWeight: '700', color: '#fff' }}>{ticket.destination}</div>
-                        </div>
-                      </div>
-
-                      <div style={{ display: 'flex', gap: '24px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '16px' }}>
-                        <div>
-                          <div style={{ fontSize: '11px', color: '#94a3b8' }}>CLASS</div>
-                          <div style={{ fontSize: '14px', color: '#fff', fontWeight: '600' }}>{ticket.ticketClass === 'I' ? 'First (I)' : 'Second (II)'}</div>
-                        </div>
-                        <div>
-                          <div style={{ fontSize: '11px', color: '#94a3b8' }}>FARE</div>
-                          <div style={{ fontSize: '14px', color: '#00ff88', fontWeight: '600' }}>₹{ticket.fare}</div>
-                        </div>
-                        <div>
-                          <div style={{ fontSize: '11px', color: '#94a3b8' }}>VALID TILL</div>
-                          <div style={{ fontSize: '14px', color: '#ff4757', fontWeight: '600' }}>{ticket.validUntil}</div>
-                        </div>
-                      </div>
+                  
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: '14px', fontWeight: '600', color: timeColor }}>
+                      {station.arr}
                     </div>
-
-                    {/* Mock QR Code generator */}
-                    <div style={{ marginLeft: '24px', background: '#fff', padding: '8px', borderRadius: '8px' }}>
-                       <img src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${ticket.id}-${ticket.source}-${ticket.destination}`} alt="QR Code" width="100" height="100" />
-                    </div>
-
+                    {i !== 0 && i !== route.length - 1 && (
+                       <div style={{ fontSize: '11px', color: '#64748b' }}>Dep: {station.dep}</div>
+                    )}
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
 
+              </div>
+            );
+          })}
+        </div>
+
+        {/* CSS for pulsing animation */}
+        <style>{`
+          @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(0, 245, 255, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(0, 245, 255, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(0, 245, 255, 0); }
+          }
+        `}</style>
+      </div>
+    );
+  };
+
+  return (
+    <div style={{ maxWidth: '600px', margin: '0 auto', paddingBottom: '40px' }}>
+      {!selectedTrain ? renderTrainList() : renderDetailedTracker()}
     </div>
   );
 }
