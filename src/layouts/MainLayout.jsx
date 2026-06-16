@@ -29,193 +29,217 @@ const ICONS = {
   profile: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>,
   bell: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>,
   menu: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>,
+  close: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
 };
 
 export default function MainLayout({ children }) {
   const location = useLocation();
   const { user, unreadCount } = useApp();
-  
-  // Hardcoded layout constants for stability
-  const SIDEBAR_EXPANDED = '260px';
-  const SIDEBAR_COLLAPSED = '76px';
-  const NAV_HEIGHT = '70px';
 
-  // State
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [isMobile, setIsMobile] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 820);
+  const [isDesktopCollapsed, setIsDesktopCollapsed] = useState(false);
 
   const isActive = (path) => location.pathname === path;
 
-  // Handle mobile screen sizing
   useEffect(() => {
     const handleResize = () => {
-      if (window.innerWidth <= 768) {
-        setIsMobile(true);
-        setSidebarOpen(false);
-      } else {
-        setIsMobile(false);
-      }
+      const mobile = window.innerWidth <= 820;
+      setIsMobile(mobile);
+      if (!mobile) setSidebarOpen(false);
     };
     window.addEventListener('resize', handleResize);
-    handleResize();
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Close sidebar on route change (mobile)
+  useEffect(() => {
+    if (isMobile) setSidebarOpen(false);
+  }, [location.pathname, isMobile]);
+
+  const sidebarWidth = isMobile ? '280px' : isDesktopCollapsed ? '76px' : '260px';
+  const marginLeft = isMobile ? '0px' : isDesktopCollapsed ? '76px' : '260px';
+
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: '#060d1f', position: 'relative', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', minHeight: '100vh', background: '#060d1f', position: 'relative', overflow: 'hidden', maxWidth: '100vw' }}>
 
       {/* Mobile Overlay */}
       {isMobile && sidebarOpen && (
-        <div 
+        <div
           onClick={() => setSidebarOpen(false)}
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 40 }} 
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 90 }}
         />
       )}
 
-      {/* ─── Sidebar ─── */}
+      {/* ── Sidebar ── */}
       <aside style={{
-        width: sidebarOpen ? SIDEBAR_EXPANDED : SIDEBAR_COLLAPSED,
+        width: sidebarWidth,
         minHeight: '100vh',
-        background: 'rgba(6,13,31,0.95)',
-        borderRight: '1px solid rgba(255,255,255,0.1)',
+        background: 'rgba(6,13,31,0.98)',
+        borderRight: '1px solid rgba(255,255,255,0.08)',
         display: 'flex',
         flexDirection: 'column',
-        transition: 'width 0.3s cubic-bezier(0.4,0,0.2,1), transform 0.3s ease',
         position: 'fixed',
         top: 0, left: 0, bottom: 0,
-        zIndex: 50,
+        zIndex: 100,
         overflowX: 'hidden',
+        overflowY: 'auto',
         backdropFilter: 'blur(20px)',
-        transform: isMobile && !sidebarOpen ? `translateX(-${SIDEBAR_EXPANDED})` : 'translateX(0)',
+        transition: 'transform 0.3s ease, width 0.3s ease',
+        transform: isMobile ? (sidebarOpen ? 'translateX(0)' : 'translateX(-100%)') : 'translateX(0)',
       }}>
-        
-        {/* Logo Area */}
+
+        {/* Logo */}
         <div style={{
-          padding: '20px 16px', borderBottom: '1px solid rgba(255,255,255,0.1)',
-          display: 'flex', alignItems: 'center', gap: '12px', minHeight: NAV_HEIGHT,
+          padding: '16px',
+          borderBottom: '1px solid rgba(255,255,255,0.08)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          minHeight: '64px',
+          flexShrink: 0,
         }}>
           <div style={{
-            width: '40px', height: '40px', flexShrink: 0,
-            background: 'linear-gradient(135deg, #00f5ff, #0066ff)', borderRadius: '10px',
+            width: '38px', height: '38px', flexShrink: 0,
+            background: 'linear-gradient(135deg, #00f5ff, #0066ff)',
+            borderRadius: '10px',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '18px', fontWeight: '800', color: '#000', fontFamily: 'Orbitron, monospace',
-            boxShadow: '0 0 20px rgba(0,245,255,0.4)',
+            fontSize: '16px', fontWeight: '800', color: '#000',
+            boxShadow: '0 0 16px rgba(0,245,255,0.3)',
           }}>P</div>
-          
-          {sidebarOpen && (
-            <div style={{ opacity: sidebarOpen ? 1 : 0, transition: 'opacity 0.2s' }}>
-              <div style={{ fontFamily: 'Orbitron, monospace', fontWeight: '800', fontSize: '15px', color: '#00f5ff', letterSpacing: '0.1em', lineHeight: 1.2, textTransform: 'uppercase' }}>PUNE</div>
-              <div style={{ fontFamily: 'Orbitron, monospace', fontWeight: '500', fontSize: '11px', color: '#94a3b8', letterSpacing: '0.2em', textTransform: 'uppercase' }}>PRAVAS</div>
+
+          {(!isDesktopCollapsed || isMobile) && (
+            <div style={{ minWidth: 0, flex: 1, overflow: 'hidden' }}>
+              <div style={{ fontWeight: '800', fontSize: '14px', color: '#00f5ff', letterSpacing: '0.1em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>PUNE</div>
+              <div style={{ fontWeight: '500', fontSize: '10px', color: '#94a3b8', letterSpacing: '0.2em', textTransform: 'uppercase' }}>PRAVAS</div>
             </div>
           )}
 
-          {!isMobile && (
-            <button
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              style={{
-                marginLeft: 'auto', background: 'transparent', border: 'none',
-                color: '#94a3b8', cursor: 'pointer', padding: '4px',
-                display: 'flex', flexShrink: 0, transition: 'color 0.2s',
-              }}
-            >
+          {isMobile ? (
+            <button onClick={() => setSidebarOpen(false)} style={{ marginLeft: 'auto', background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '4px', flexShrink: 0 }}>
+              <div style={{ width: '20px', height: '20px' }}>{ICONS.close}</div>
+            </button>
+          ) : (
+            <button onClick={() => setIsDesktopCollapsed(!isDesktopCollapsed)} style={{ marginLeft: 'auto', background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '4px', flexShrink: 0 }}>
               <div style={{ width: '20px', height: '20px' }}>{ICONS.menu}</div>
             </button>
           )}
         </div>
 
-        {/* Navigation */}
-        <nav style={{ flex: 1, padding: '16px 12px', overflowY: 'auto', overflowX: 'hidden' }}>
+        {/* Nav */}
+        <nav style={{ flex: 1, padding: '12px 10px', overflowY: 'auto', overflowX: 'hidden' }}>
           {NAV_ITEMS.map((item) => {
             const active = isActive(item.path);
             return (
               <Link
-                key={item.path} to={item.path}
-                onClick={() => isMobile && setSidebarOpen(false)}
+                key={item.path}
+                to={item.path}
                 style={{
-                  display: 'flex', alignItems: 'center', gap: '16px', padding: '12px',
-                  borderRadius: '10px', marginBottom: '6px', textDecoration: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  padding: '11px 10px',
+                  borderRadius: '10px',
+                  marginBottom: '4px',
+                  textDecoration: 'none',
                   color: active ? '#00f5ff' : item.accent ? '#8b5cf6' : '#94a3b8',
-                  background: active ? 'linear-gradient(90deg, rgba(0,245,255,0.12), rgba(0,102,255,0.06))' : 'transparent',
+                  background: active ? 'rgba(0,245,255,0.1)' : 'transparent',
                   borderLeft: active ? '3px solid #00f5ff' : '3px solid transparent',
-                  transition: 'all 0.2s ease', whiteSpace: 'nowrap',
+                  transition: 'all 0.18s ease',
+                  overflow: 'hidden',
+                  minHeight: '44px',
                 }}
               >
                 <div style={{ width: '20px', height: '20px', flexShrink: 0 }}>{ICONS[item.glyph]}</div>
-                {sidebarOpen && <span style={{ fontSize: '14px', fontWeight: active ? '600' : '500' }}>{item.label}</span>}
+                {(!isDesktopCollapsed || isMobile) && (
+                  <span style={{ fontSize: '13px', fontWeight: active ? '600' : '500', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {item.label}
+                  </span>
+                )}
               </Link>
             );
           })}
         </nav>
 
-        {/* User Profile */}
-        <div style={{ padding: '16px', borderTop: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', gap: '12px' }}>
+        {/* User */}
+        <div style={{ padding: '12px', borderTop: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
           <div style={{
-            width: '38px', height: '38px', flexShrink: 0, borderRadius: '50%',
+            width: '36px', height: '36px', flexShrink: 0, borderRadius: '50%',
             background: 'linear-gradient(135deg, #00f5ff, #8b5cf6)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '14px', fontWeight: '700', color: '#000', border: '2px solid rgba(255,255,255,0.1)',
+            fontSize: '13px', fontWeight: '700', color: '#000',
           }}>
             {user?.name?.[0] || 'U'}
           </div>
-          {sidebarOpen && (
-            <div style={{ overflow: 'hidden' }}>
-              <div style={{ fontSize: '14px', fontWeight: '600', color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user?.name || 'User'}</div>
+          {(!isDesktopCollapsed || isMobile) && (
+            <div style={{ minWidth: 0, overflow: 'hidden' }}>
+              <div style={{ fontSize: '13px', fontWeight: '600', color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user?.name || 'User'}</div>
               <div style={{ fontSize: '11px', color: '#00f5ff' }}>{user?.tier || 'Pro'} Member</div>
             </div>
           )}
         </div>
       </aside>
 
-      {/* ─── Main Content Area ─── */}
+      {/* ── Main Content ── */}
       <div style={{
         flex: 1,
-        marginLeft: isMobile ? 0 : (sidebarOpen ? SIDEBAR_EXPANDED : SIDEBAR_COLLAPSED),
-        transition: 'margin-left 0.3s cubic-bezier(0.4,0,0.2,1)',
-        display: 'flex', flexDirection: 'column', minHeight: '100vh',
-        position: 'relative', zIndex: 1,
+        marginLeft: marginLeft,
+        transition: 'margin-left 0.3s ease',
+        display: 'flex',
+        flexDirection: 'column',
+        minHeight: '100vh',
+        width: `calc(100% - ${marginLeft})`,
+        maxWidth: '100%',
+        overflow: 'hidden',
       }}>
-        
-        {/* Top Header Bar */}
+
+        {/* Header */}
         <header style={{
-          height: NAV_HEIGHT, background: 'rgba(6,13,31,0.9)',
-          borderBottom: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(20px)',
-          display: 'flex', alignItems: 'center', padding: '0 24px', gap: '20px',
-          position: 'sticky', top: 0, zIndex: 30,
+          height: '64px',
+          background: 'rgba(6,13,31,0.92)',
+          borderBottom: '1px solid rgba(255,255,255,0.08)',
+          backdropFilter: 'blur(20px)',
+          display: 'flex',
+          alignItems: 'center',
+          padding: '0 16px',
+          gap: '12px',
+          position: 'sticky',
+          top: 0,
+          zIndex: 30,
+          width: '100%',
+          overflow: 'hidden',
         }}>
-          
-          {/* Header Toggle (Crucial for mobile, handy for desktop) */}
+
+          {/* Hamburger — always visible */}
           <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            style={{
-              background: 'transparent', border: 'none', color: '#fff',
-              cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center'
-            }}
+            onClick={() => isMobile ? setSidebarOpen(true) : setIsDesktopCollapsed(!isDesktopCollapsed)}
+            style={{ background: 'transparent', border: 'none', color: '#fff', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', flexShrink: 0 }}
           >
-            <div style={{ width: '24px', height: '24px' }}>{ICONS.menu}</div>
+            <div style={{ width: '22px', height: '22px' }}>{ICONS.menu}</div>
           </button>
 
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: '11px', color: '#94a3b8', fontFamily: 'Orbitron, monospace', letterSpacing: '0.15em', textTransform: 'uppercase' }}>
-              Pune Pravas
-            </div>
-            <div style={{ fontSize: '18px', fontWeight: '700', color: '#fff' }}>
+          {/* Title */}
+          <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
+            <div style={{ fontSize: '10px', color: '#94a3b8', letterSpacing: '0.15em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Pune Pravas</div>
+            <div style={{ fontSize: '16px', fontWeight: '700', color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {NAV_ITEMS.find(n => n.path === location.pathname)?.label || 'Dashboard'}
             </div>
           </div>
 
-          {/* Status & Wallet */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 12px', borderRadius: '20px', background: 'rgba(0,255,136,0.08)', border: '1px solid rgba(0,255,136,0.2)' }}>
-            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#00ff88', boxShadow: '0 0 8px #00ff88', animation: 'pulse-glow 2s infinite' }} />
-            <span style={{ fontSize: '13px', color: '#00ff88', fontWeight: '600' }}>Live</span>
+          {/* Live badge */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '5px 10px', borderRadius: '20px', background: 'rgba(0,255,136,0.08)', border: '1px solid rgba(0,255,136,0.2)', flexShrink: 0 }}>
+            <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#00ff88', animation: 'pulse-glow 2s infinite', flexShrink: 0 }} />
+            <span style={{ fontSize: '12px', color: '#00ff88', fontWeight: '600' }}>Live</span>
           </div>
 
-          <div style={{ padding: '8px 16px', borderRadius: '8px', background: 'rgba(0,245,255,0.1)', border: '1px solid rgba(0,245,255,0.2)', fontSize: '14px', fontWeight: '700', color: '#00f5ff' }}>
+          {/* Wallet */}
+          <div style={{ padding: '6px 12px', borderRadius: '8px', background: 'rgba(0,245,255,0.1)', border: '1px solid rgba(0,245,255,0.2)', fontSize: '13px', fontWeight: '700', color: '#00f5ff', flexShrink: 0 }}>
             ₹{user?.balance?.toFixed(0) || 1241}
           </div>
         </header>
 
-        {/* Dynamic Page Content */}
-        <main style={{ flex: 1, padding: '24px', overflowY: 'auto' }}>
+        {/* Page Content */}
+        <main style={{ flex: 1, padding: '16px', overflowX: 'hidden', overflowY: 'auto', width: '100%' }}>
           {children}
         </main>
       </div>
