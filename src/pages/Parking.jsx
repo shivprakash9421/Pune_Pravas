@@ -13,6 +13,10 @@ const SLOT_GRID = Array.from({ length: 30 }, (_, i) => ({
   status: i < 7 ? 'taken' : i < 9 ? 'reserved' : i > 24 ? 'ev' : 'free',
 }));
 
+const IconBuilding = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="4" y="3" width="16" height="18" rx="1"/><path d="M9 21v-4h6v4M9 7h2M13 7h2M9 11h2M13 11h2M9 15h2M13 15h2"/></svg>;
+const IconCheck = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>;
+const IconBolt = () => <svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L4 14h6l-1 8 9-12h-6l1-8z"/></svg>;
+
 export default function Parking() {
   const [selected, setSelected] = useState(null);
   const [hours, setHours] = useState(2);
@@ -23,10 +27,10 @@ export default function Parking() {
   const totalCost = location ? parseInt(location.rate) * hours : 0;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+    <div className="page-stack">
 
       {/* Stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '14px' }}>
+      <div className="responsive-grid-4">
         {[
           { label: 'Total Spots', value: '1,130', color: '#00f5ff' },
           { label: 'Available Now', value: '395', color: '#00ff88' },
@@ -35,34 +39,33 @@ export default function Parking() {
         ].map(s => (
           <div key={s.label} className="glass-card" style={{ padding: '18px' }}>
             <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '6px' }}>{s.label}</div>
-            <div style={{ fontFamily: 'Orbitron, monospace', fontSize: '22px', fontWeight: '800', color: s.color }}>{s.value}</div>
+            <div style={{ fontSize: '20px', fontWeight: '800', color: s.color }}>{s.value}</div>
           </div>
         ))}
       </div>
 
       {/* Main Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: selected ? '1fr 380px' : '1fr', gap: '20px' }}>
+      <div className={selected ? 'two-col-layout' : ''} style={!selected ? { display: 'flex', flexDirection: 'column' } : {}}>
 
         {/* Location List */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', minWidth: 0 }}>
           {PARKING_LOCATIONS.map(loc => (
             <div
               key={loc.id}
               onClick={() => { setSelected(loc.id === selected ? null : loc.id); setSlotSelected(null); setBooked(false); }}
               style={{
-                padding: '20px 24px',
+                padding: '18px',
                 borderRadius: 'var(--radius-lg)',
                 border: `1px solid ${selected === loc.id ? loc.color : 'var(--border-subtle)'}`,
                 background: selected === loc.id ? `${loc.color}08` : 'rgba(0,0,0,0.2)',
                 cursor: loc.status !== 'Full' ? 'pointer' : 'default',
                 opacity: loc.status === 'Full' ? 0.6 : 1,
-                transition: 'all 0.2s ease',
-                display: 'flex', alignItems: 'center', gap: '20px',
+                display: 'flex', alignItems: 'center', gap: '16px',
+                flexWrap: 'wrap',
               }}
             >
-              {/* Availability ring */}
-              <div style={{ position: 'relative', width: '56px', height: '56px', flexShrink: 0 }}>
-                <svg viewBox="0 0 56 56" width="56" height="56" style={{ transform: 'rotate(-90deg)' }}>
+              <div style={{ position: 'relative', width: '52px', height: '52px', flexShrink: 0 }}>
+                <svg viewBox="0 0 56 56" width="52" height="52" style={{ transform: 'rotate(-90deg)' }}>
                   <circle cx="28" cy="28" r="22" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="4"/>
                   <circle cx="28" cy="28" r="22" fill="none" stroke={loc.color} strokeWidth="4"
                     strokeDasharray={`${2 * Math.PI * 22}`}
@@ -72,28 +75,28 @@ export default function Parking() {
                 </svg>
                 <div style={{
                   position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: '12px', fontWeight: '700', color: loc.color, fontFamily: 'Orbitron, monospace',
+                  fontSize: '11px', fontWeight: '700', color: loc.color,
                 }}>{Math.round(loc.available/loc.total*100)}%</div>
               </div>
 
-              <div style={{ flex: 1, overflow: 'hidden' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
-                  <div style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text-primary)' }}>{loc.name}</div>
+              <div style={{ flex: '1 1 200px', minWidth: 0, overflow: 'hidden' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px', flexWrap: 'wrap' }}>
+                  <div style={{ fontSize: '14px', fontWeight: '700', color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis' }}>{loc.name}</div>
                   <span className={`badge ${loc.status === 'Available' ? 'badge-green' : loc.status === 'Full' ? 'badge-red' : 'badge-amber'}`} style={{ fontSize: '11px' }}>
                     {loc.status}
                   </span>
                 </div>
-                <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '8px' }}>{loc.address} · {loc.dist}</div>
-                <div style={{ display: 'flex', gap: '16px' }}>
-                  <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>🏢 {loc.type}</span>
+                <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{loc.address} - {loc.dist}</div>
+                <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{loc.type}</span>
                   <span style={{ fontSize: '12px', color: 'var(--neon-amber)', fontWeight: '600' }}>{loc.rate}</span>
                   <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{loc.available}/{loc.total} free</span>
                 </div>
               </div>
 
-              <div style={{ fontFamily: 'Orbitron, monospace', fontSize: '22px', fontWeight: '800', color: loc.color, flexShrink: 0 }}>
+              <div style={{ fontSize: '20px', fontWeight: '800', color: loc.color, flexShrink: 0, textAlign: 'center' }}>
                 {loc.available}
-                <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontFamily: 'Space Grotesk, sans-serif', textAlign: 'center', fontWeight: '400' }}>slots</div>
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '400' }}>slots</div>
               </div>
             </div>
           ))}
@@ -101,14 +104,13 @@ export default function Parking() {
 
         {/* Booking Panel */}
         {selected && location && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', animation: 'slide-up 0.3s ease' }}>
-            <div className="glass-card" style={{ padding: '20px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', minWidth: 0, animation: 'slide-up 0.3s ease' }}>
+            <div className="section-card">
               <h3 style={{ fontSize: '14px', fontWeight: '700', marginBottom: '4px', color: location.color }}>{location.name}</h3>
               <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '20px' }}>{location.address}</div>
 
-              {/* Slot Grid */}
               <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '10px' }}>Select Slot</div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '6px', marginBottom: '20px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, minmax(0, 1fr))', gap: '6px', marginBottom: '20px' }}>
                 {SLOT_GRID.map(slot => {
                   const colors = { taken: '#ff3366', reserved: '#ffb700', ev: '#8b5cf6', free: location.color };
                   const c = colors[slot.status];
@@ -117,7 +119,7 @@ export default function Parking() {
                       key={slot.id}
                       onClick={() => slot.status === 'free' || slot.status === 'ev' ? setSlotSelected(slot.id) : null}
                       style={{
-                        height: '36px',
+                        height: '34px',
                         borderRadius: '6px',
                         background: slotSelected === slot.id ? c : `${c}22`,
                         border: `1px solid ${c}55`,
@@ -125,24 +127,22 @@ export default function Parking() {
                         fontSize: '10px', fontWeight: '600', color: slotSelected === slot.id ? '#000' : c,
                         cursor: slot.status === 'free' || slot.status === 'ev' ? 'pointer' : 'not-allowed',
                         opacity: slot.status === 'taken' ? 0.5 : 1,
-                        transition: 'all 0.15s',
                       }}
                     >
-                      {slot.status === 'ev' ? '⚡' : slot.id}
+                      {slot.status === 'ev' ? <IconBolt /> : slot.id}
                     </div>
                   );
                 })}
               </div>
 
-              <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', fontSize: '11px', color: 'var(--text-muted)' }}>
+              <div style={{ display: 'flex', gap: '10px', marginBottom: '16px', fontSize: '11px', color: 'var(--text-muted)', flexWrap: 'wrap' }}>
                 {[['#ff3366','Taken'],['#ffb700','Reserved'],['#8b5cf6','EV'],['#00ff88','Free']].map(([c,l]) => (
                   <span key={l} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <div style={{ width: '10px', height: '10px', borderRadius: '3px', background: c }} />{l}
+                    <div style={{ width: '10px', height: '10px', borderRadius: '3px', background: c, flexShrink: 0 }} />{l}
                   </span>
                 ))}
               </div>
 
-              {/* Duration */}
               <div style={{ marginBottom: '16px' }}>
                 <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '8px' }}>Duration</div>
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
@@ -153,8 +153,7 @@ export default function Parking() {
                       border: `1px solid ${hours === h ? location.color : 'var(--border-subtle)'}`,
                       background: hours === h ? `${location.color}15` : 'rgba(0,0,0,0.2)',
                       color: hours === h ? location.color : 'var(--text-secondary)',
-                      fontFamily: 'Space Grotesk, sans-serif', fontWeight: '600', fontSize: '13px',
-                      cursor: 'pointer', transition: 'all 0.15s',
+                      fontWeight: '600', fontSize: '13px', cursor: 'pointer',
                     }}>{h}h</button>
                   ))}
                 </div>
@@ -163,22 +162,22 @@ export default function Parking() {
               <div style={{
                 padding: '14px', borderRadius: 'var(--radius-md)',
                 background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border-subtle)',
-                display: 'flex', justifyContent: 'space-between', marginBottom: '16px',
+                display: 'flex', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '8px',
               }}>
                 <div>
-                  <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Slot {slotSelected || '—'} · {hours} hrs</div>
+                  <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Slot {slotSelected || '-'} - {hours} hrs</div>
                   <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{location.rate}</div>
                 </div>
-                <div style={{ fontFamily: 'Orbitron, monospace', fontSize: '24px', fontWeight: '800', color: location.color }}>
+                <div style={{ fontSize: '22px', fontWeight: '800', color: location.color }}>
                   ₹{totalCost}
                 </div>
               </div>
 
               {booked ? (
-                <div style={{ textAlign: 'center', padding: '20px', borderRadius: 'var(--radius-md)', background: 'rgba(0,255,136,0.08)', border: '1px solid rgba(0,255,136,0.3)', animation: 'slide-up 0.3s ease' }}>
-                  <div style={{ fontSize: '32px', marginBottom: '8px' }}>✅</div>
-                  <div style={{ fontFamily: 'Orbitron, monospace', color: 'var(--neon-green)', fontWeight: '700', marginBottom: '4px' }}>SLOT RESERVED</div>
-                  <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Slot {slotSelected} · {location.name}</div>
+                <div style={{ textAlign: 'center', padding: '20px', borderRadius: 'var(--radius-md)', background: 'rgba(0,255,136,0.08)', border: '1px solid rgba(0,255,136,0.3)' }}>
+                  <div className="icon-circle" style={{ margin: '0 auto 8px', '--icon-color': 'var(--neon-green)' }}><IconCheck /></div>
+                  <div style={{ color: 'var(--neon-green)', fontWeight: '700', marginBottom: '4px' }}>SLOT RESERVED</div>
+                  <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Slot {slotSelected} - {location.name}</div>
                 </div>
               ) : (
                 <button
@@ -187,7 +186,7 @@ export default function Parking() {
                   onClick={() => slotSelected && setBooked(true)}
                   disabled={!slotSelected}
                 >
-                  Reserve Slot · ₹{totalCost}
+                  Reserve Slot - ₹{totalCost}
                 </button>
               )}
             </div>
