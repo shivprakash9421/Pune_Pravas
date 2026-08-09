@@ -1,26 +1,19 @@
-import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
-import { getFunctions } from 'firebase/functions';
+import { initializeApp } from "firebase/app";
+import { getAuth } from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
 
-const required = ['VITE_FIREBASE_API_KEY', 'VITE_FIREBASE_AUTH_DOMAIN', 'VITE_FIREBASE_PROJECT_ID', 'VITE_FIREBASE_APP_ID'];
-const missing = required.filter((key) => !import.meta.env[key]);
+const firebaseConfig = {
+  apiKey: "AIzaSyCWBcZkm6XVp-UNCdjAFBIYDtTbbbLRB44",
+  authDomain: "mobilityos-3c7e5.firebaseapp.com",
+  projectId: "mobilityos-3c7e5",
+  storageBucket: "mobilityos-3c7e5.firebasestorage.app",
+  messagingSenderId: "887377458344",
+  appId: "1:887377458344:web:d1e63cd991aa43a8b43e9d"
+};
 
-if (missing.length) {
-  console.warn(`Firebase is not configured. Add ${missing.join(', ')} to .env.local.`);
-}
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
 
-const app = initializeApp({
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
-});
-
+// Export Auth and Firestore so the rest of your app can use them
 export const auth = getAuth(app);
 export const db = getFirestore(app);
-export const functions = getFunctions(app, 'asia-south1');
-export const googleProvider = new GoogleAuthProvider();
-export default app;

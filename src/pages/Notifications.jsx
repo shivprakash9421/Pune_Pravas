@@ -1,55 +1,43 @@
 import React from 'react';
-import { useApp } from '../context/AppContext';
-
-const ALL_NOTIFICATIONS = [
-  { id: 1, type: 'alert', icon: '🚇', title: 'Metro Line 1 Delay', message: 'Swargate station experiencing 8 min delay due to signal maintenance.', time: '2 min ago', read: false, color: '#ff3366' },
-  { id: 2, type: 'success', icon: '💳', title: 'Wallet Recharged', message: '₹500 added to your MobilityOS wallet via UPI successfully.', time: '1 hr ago', read: false, color: '#00ff88' },
-  { id: 3, type: 'info', icon: '🚌', title: 'Bus Route 50 Update', message: 'Route 50 now serving new stop at Hinjewadi Phase 3 from today.', time: '3 hr ago', read: false, color: '#00f5ff' },
-  { id: 4, type: 'promo', icon: '🎁', title: '10% Cashback Offer', message: 'Use code METRO10 for 10% cashback on next 3 metro rides. Valid till Sunday.', time: 'Yesterday', read: true, color: '#ffb700' },
-  { id: 5, type: 'success', icon: '✅', title: 'Parking Reserved', message: 'Slot B-14 at Shivajinagar Central reserved for 2 hrs. QR in Tickets.', time: 'Yesterday', read: true, color: '#00ff88' },
-  { id: 6, type: 'info', icon: '🤖', title: 'AI Route Suggestion', message: 'Based on your routine, Metro + Bus saves ₹85 weekly vs daily cab bookings.', time: '2 days ago', read: true, color: '#8b5cf6' },
-  { id: 7, type: 'alert', icon: '⛽', title: 'Cab Surge Pricing', message: 'High demand near FC Road and Shivajinagar. 1.4× surge active till 7 PM.', time: '2 days ago', read: true, color: '#ff3366' },
-];
+import { Bell, AlertCircle, Info, CheckCircle2 } from 'lucide-react';
 
 export default function Notifications() {
-  const { markAllRead, unreadCount } = useApp();
+  const notifications = [
+    { id: 1, type: 'alert', title: 'Metro Aqua Line Delay', message: 'Trains are running 10 mins late due to technical issues at Nal Stop.', time: '10 mins ago', read: false },
+    { id: 2, type: 'success', title: 'Ticket Purchased', message: 'Monthly PMPL pass successfully activated. Valid till Sept 12.', time: '2 hours ago', read: true },
+    { id: 3, type: 'info', title: 'Wallet Low Balance', message: 'Your wallet balance is below ₹100. Top up to avoid trip interruptions.', time: '1 day ago', read: true },
+  ];
+
+  const getIcon = (type) => {
+    switch(type) {
+      case 'alert': return <AlertCircle className="text-[var(--color-danger)]" size={20} />;
+      case 'success': return <CheckCircle2 className="text-[var(--color-success)]" size={20} />;
+      default: return <Info className="text-blue-500" size={20} />;
+    }
+  };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '700px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+    <div className="space-y-8 animate-fade-in max-w-3xl mx-auto">
+      <div className="flex items-center justify-between">
         <div>
-          <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{unreadCount} unread</div>
+          <h1 className="text-3xl font-bold tracking-tight text-[var(--color-text-primary)]">Notifications</h1>
+          <p className="text-[var(--color-text-secondary)] mt-1">Updates on your trips and network alerts.</p>
         </div>
-        <button className="btn-ghost" style={{ fontSize: '13px', padding: '8px 18px' }} onClick={markAllRead}>
-          Mark all read
-        </button>
+        <button className="text-sm font-medium text-[var(--color-primary)] hover:underline">Mark all as read</button>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        {ALL_NOTIFICATIONS.map(n => (
-          <div key={n.id} style={{
-            display: 'flex', gap: '14px', padding: '18px 20px',
-            borderRadius: 'var(--radius-lg)',
-            background: n.read ? 'rgba(0,0,0,0.15)' : `${n.color}08`,
-            border: `1px solid ${n.read ? 'var(--border-subtle)' : n.color + '33'}`,
-            transition: 'all 0.2s',
-            animation: 'slide-up 0.3s ease',
-          }}>
-            <div style={{
-              width: '44px', height: '44px', borderRadius: 'var(--radius-md)', flexShrink: 0,
-              background: `${n.color}15`, border: `1px solid ${n.color}33`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px',
-            }}>{n.icon}</div>
-            <div style={{ flex: 1 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
-                <div style={{ fontSize: '14px', fontWeight: n.read ? '500' : '700', color: 'var(--text-primary)' }}>{n.title}</div>
-                <div style={{ fontSize: '11px', color: 'var(--text-muted)', whiteSpace: 'nowrap', marginLeft: '12px' }}>{n.time}</div>
+      <div className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] shadow-[var(--shadow-card)] border border-[var(--color-border)] overflow-hidden">
+        {notifications.map((notif) => (
+          <div key={notif.id} className={`p-5 flex gap-4 border-b border-[var(--color-border)] last:border-0 transition-colors ${notif.read ? 'bg-white' : 'bg-slate-50'}`}>
+            <div className="shrink-0 mt-1">{getIcon(notif.type)}</div>
+            <div className="flex-1">
+              <div className="flex justify-between items-start mb-1">
+                <h3 className={`text-sm font-bold ${notif.read ? 'text-[var(--color-text-secondary)]' : 'text-[var(--color-text-primary)]'}`}>{notif.title}</h3>
+                <span className="text-xs text-[var(--color-text-muted)] whitespace-nowrap ml-4">{notif.time}</span>
               </div>
-              <div style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>{n.message}</div>
+              <p className="text-sm text-[var(--color-text-secondary)] leading-relaxed">{notif.message}</p>
             </div>
-            {!n.read && (
-              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: n.color, boxShadow: `0 0 8px ${n.color}`, flexShrink: 0, marginTop: '6px' }} />
-            )}
+            {!notif.read && <div className="h-2 w-2 rounded-full bg-[var(--color-primary)] self-center shrink-0"></div>}
           </div>
         ))}
       </div>

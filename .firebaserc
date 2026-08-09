@@ -1,5 +1,7 @@
 {
   "projects": {
     "default": "mobilityos-3c7e5"
-  }
+  },
+  "targets": {},
+  "etags": {}
 }

@@ -1,213 +1,50 @@
-import React, { useEffect, useState } from 'react';
-import { auth } from '../firebase/firebase';
-
-const METRICS = [
-  { label: 'Total Rides Today', value: '18,420', change: '+12%', color: '#00f5ff' },
-  { label: 'Active Vehicles', value: '847', change: '+3%', color: '#00ff88' },
-  { label: 'Revenue Today', value: '₹4.2L', change: '+8%', color: '#ffb700' },
-  { label: 'User Complaints', value: '14', change: '-22%', color: '#ff3366' },
-  { label: 'System Uptime', value: '99.8%', change: 'Stable', color: '#8b5cf6' },
-  { label: 'Avg Wait Time', value: '6.2 min', change: '-5%', color: '#00f5ff' },
-];
-
-const FLEET = [
-  { id: 'Metro', count: 24, active: 22, maintenance: 2, color: '#8b5cf6' },
-  { id: 'PMPL Bus', count: 185, active: 142, maintenance: 20, color: '#00ff88' },
-  { id: 'Cabs', count: 312, active: 89, maintenance: 15, color: '#00f5ff' },
-];
-
-const RECENT_ALERTS = [
-  { type: 'critical', msg: 'Metro Line 1 signal fault at Swargate', time: '5 min ago' },
-  { type: 'warning', msg: 'Bus PMT-1042 exceeded speed limit on NH-48', time: '12 min ago' },
-  { type: 'info', msg: 'New driver onboarded: Amit Patil (Cab)', time: '34 min ago' },
-  { type: 'success', msg: 'Server backup completed successfully', time: '1 hr ago' },
-];
-
-const BAR_DATA = [65, 80, 72, 90, 85, 70, 88, 95, 78, 82, 91, 87];
-const LABELS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-
-function ApiKeyManager() {
-  const [keys, setKeys] = useState([]);
-  const [name, setName] = useState('');
-  const [newKey, setNewKey] = useState('');
-  const [error, setError] = useState('');
-  const apiBase = import.meta.env.VITE_API_BASE_URL;
-  const request = async (path, options = {}) => {
-    if (!apiBase) throw new Error('Set VITE_API_BASE_URL in .env.local to enable API key management.');
-    const token = await auth.currentUser.getIdToken();
-    const response = await fetch(`${apiBase}${path}`, { ...options, headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', ...(options.headers || {}) } });
-    if (!response.ok) { const body = await response.json().catch(() => ({})); throw new Error(body.error?.message || 'Request failed.'); }
-    return response.status === 204 ? null : response.json();
-  };
-  const load = async () => { try { setKeys((await request('/admin/api-keys')).items); } catch (err) { setError(err.message); } };
-  useEffect(() => { load(); }, []);
-  const create = async (event) => { event.preventDefault(); setError(''); try { const data = await request('/admin/api-keys', { method: 'POST', body: JSON.stringify({name}) }); setNewKey(data.apiKey); setName(''); await load(); } catch (err) { setError(err.message); } };
-  const revoke = async (id) => { if (!window.confirm('Revoke this API key? This cannot be undone.')) return; try { await request(`/admin/api-keys/${id}`, {method: 'DELETE'}); await load(); } catch (err) { setError(err.message); } };
-  return <div className="glass-card" style={{ padding: '24px' }}>
-    <div style={{ fontSize: '14px', fontWeight: 700, marginBottom: '6px' }}>API Key Management</div>
-    <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '16px' }}>Keys are shown only once at creation and are stored hashed on the server.</div>
-    <form onSubmit={create} style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}><input required value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Operations integration" style={{ flex: 1, padding: '9px 12px', borderRadius: 7, border: '1px solid rgba(0,245,255,.3)', background: '#091323', color: '#fff' }} /><button style={{ padding: '9px 14px', border: 0, borderRadius: 7, cursor: 'pointer', fontWeight: 700, background: '#00f5ff' }}>Create key</button></form>
-    {newKey && <div style={{ marginBottom: '14px', padding: '10px', borderRadius: 7, background: 'rgba(0,255,136,.1)', color: '#00ff88', wordBreak: 'break-all' }}>Copy now: <code>{newKey}</code></div>}
-    {error && <div style={{ color: '#ff829d', fontSize: 12, marginBottom: 10 }}>{error}</div>}
-    {keys.map(key => <div key={key.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 0', borderTop: '1px solid rgba(255,255,255,.08)' }}><div style={{ flex: 1 }}><div style={{ fontSize: 13 }}>{key.name}</div><div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{key.prefix}… {key.revoked ? '• Revoked' : '• Active'}</div></div>{!key.revoked && <button onClick={() => revoke(key.id)} style={{ border: 0, borderRadius: 6, padding: '6px 10px', color: '#ff829d', background: 'rgba(255,51,102,.12)', cursor: 'pointer' }}>Revoke</button>}</div>)}
-  </div>;
-}
+import React from 'react';
+import { Users, Activity, IndianRupee, Key } from 'lucide-react';
 
 export default function AdminDashboard() {
-  const [timeRange, setTimeRange] = useState('today');
+  const stats = [
+    { label: 'Total Users', value: '12,450', icon: Users, trend: '+12%' },
+    { label: 'Active Trips Today', value: '3,842', icon: Activity, trend: '+5%' },
+    { label: 'Daily Revenue', value: '₹4.2L', icon: IndianRupee, trend: '+8%' },
+  ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-
-      {/* Admin Header */}
-      <div style={{
-        padding: '18px 24px', borderRadius: 'var(--radius-lg)',
-        background: 'linear-gradient(90deg, rgba(255,51,102,0.1), rgba(139,92,246,0.08))',
-        border: '1px solid rgba(255,51,102,0.3)',
-        display: 'flex', alignItems: 'center', gap: '12px',
-      }}>
-        <span style={{ fontSize: '20px' }}>🛡️</span>
-        <div>
-          <div style={{ fontFamily: 'Orbitron, monospace', fontSize: '13px', color: '#ff3366', fontWeight: '700', letterSpacing: '0.1em' }}>ADMIN CONTROL CENTER</div>
-          <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Pune Smart Mobility Network · Super Admin</div>
-        </div>
-        <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px' }}>
-          {['today','week','month'].map(r => (
-            <button key={r} onClick={() => setTimeRange(r)} style={{
-              padding: '7px 16px', borderRadius: 'var(--radius-md)', border: 'none',
-              background: timeRange === r ? 'rgba(255,51,102,0.2)' : 'transparent',
-              color: timeRange === r ? '#ff3366' : 'var(--text-secondary)',
-              fontFamily: 'Space Grotesk, sans-serif', fontSize: '13px', cursor: 'pointer',
-              textTransform: 'capitalize',
-            }}>{r}</button>
-          ))}
-        </div>
+    <div className="space-y-8 animate-fade-in">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight text-[var(--color-text-primary)]">System Admin</h1>
+        <p className="text-[var(--color-text-secondary)] mt-1">Overview of MobilityOS usage and API keys.</p>
       </div>
 
-      {/* Metrics Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6,1fr)', gap: '14px' }}>
-        {METRICS.map(m => (
-          <div key={m.label} className="glass-card" style={{ padding: '18px' }}>
-            <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '8px', lineHeight: 1.3 }}>{m.label}</div>
-            <div style={{ fontFamily: 'Orbitron, monospace', fontSize: '20px', fontWeight: '800', color: m.color, marginBottom: '4px' }}>{m.value}</div>
-            <div style={{ fontSize: '12px', color: m.change.startsWith('+') || m.change === 'Stable' ? 'var(--neon-green)' : m.change.startsWith('-') && m.label.includes('Complaint') ? 'var(--neon-green)' : 'var(--neon-red)' }}>
-              {m.change}
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {stats.map((stat, idx) => (
+          <div key={idx} className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[var(--radius-lg)] p-6 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <div className="p-2 bg-[var(--color-bg-subtle)] rounded-lg text-[var(--color-text-secondary)]">
+                <stat.icon size={20} />
+              </div>
+              <span className="text-xs font-bold text-[var(--color-success)] bg-green-50 px-2 py-1 rounded-full">{stat.trend}</span>
             </div>
+            <p className="text-sm font-bold text-[var(--color-text-muted)] uppercase tracking-wider">{stat.label}</p>
+            <p className="text-3xl font-bold text-[var(--color-text-primary)] mt-1">{stat.value}</p>
           </div>
         ))}
       </div>
 
-      {/* Charts Row */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '20px' }}>
-
-        {/* Bar Chart */}
-        <div className="glass-card" style={{ padding: '24px' }}>
-          <div style={{ fontSize: '14px', fontWeight: '600', marginBottom: '24px', display: 'flex', justifyContent: 'space-between' }}>
-            <span>Monthly Ridership 2025</span>
-            <span style={{ fontFamily: 'Orbitron, monospace', fontSize: '20px', color: 'var(--neon-cyan)', fontWeight: '800' }}>1.8L</span>
-          </div>
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end', height: '140px' }}>
-            {BAR_DATA.map((val, i) => (
-              <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', height: '100%', justifyContent: 'flex-end' }}>
-                <div style={{
-                  width: '100%', height: `${val}%`,
-                  background: i === 10 ? 'linear-gradient(0deg, var(--neon-cyan), var(--neon-blue))' : 'rgba(0,245,255,0.3)',
-                  borderRadius: '4px 4px 0 0',
-                  border: i === 10 ? '1px solid var(--neon-cyan)' : '1px solid rgba(0,245,255,0.2)',
-                  transition: 'all 0.3s',
-                  boxShadow: i === 10 ? '0 0 12px rgba(0,245,255,0.4)' : 'none',
-                }} />
-                <div style={{ fontSize: '9px', color: 'var(--text-muted)' }}>{LABELS[i]}</div>
-              </div>
-            ))}
-          </div>
+      {/* API Keys Table Placeholder */}
+      <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[var(--radius-lg)] shadow-[var(--shadow-card)] overflow-hidden">
+        <div className="p-6 border-b border-[var(--color-border)] flex items-center justify-between">
+          <h3 className="font-bold text-[var(--color-text-primary)] text-lg flex items-center gap-2">
+            <Key size={20} /> API Keys Management
+          </h3>
+          <button className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white px-4 py-2 rounded-[var(--radius-sm)] text-sm font-medium transition-colors">
+            Generate Key
+          </button>
         </div>
-
-        {/* Fleet Status */}
-        <div className="glass-card" style={{ padding: '24px' }}>
-          <div style={{ fontSize: '14px', fontWeight: '600', marginBottom: '20px' }}>Fleet Status</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {FLEET.map(f => (
-              <div key={f.id}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                  <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>{f.id}</span>
-                  <span style={{ fontSize: '13px', fontWeight: '600', color: f.color }}>{f.active}/{f.count} active</span>
-                </div>
-                <div style={{ height: '8px', background: 'rgba(255,255,255,0.08)', borderRadius: '4px', overflow: 'hidden' }}>
-                  <div style={{
-                    height: '100%', width: `${(f.active / f.count) * 100}%`,
-                    background: `linear-gradient(90deg, ${f.color}, ${f.color}99)`,
-                    borderRadius: '4px',
-                  }} />
-                </div>
-                <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '3px' }}>🔧 {f.maintenance} in maintenance</div>
-              </div>
-            ))}
-          </div>
+        <div className="p-6 text-center text-[var(--color-text-secondary)]">
+          <p className="text-sm">API Key management table will render here connected to backend.</p>
         </div>
       </div>
-
-      {/* Bottom Row */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-
-        {/* Alerts */}
-        <div className="glass-card" style={{ padding: '24px' }}>
-          <div style={{ fontSize: '14px', fontWeight: '600', marginBottom: '16px', display: 'flex', gap: '8px', alignItems: 'center' }}>
-            System Alerts
-            <span className="badge badge-red">4 Active</span>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            {RECENT_ALERTS.map((a, i) => {
-              const colors = { critical: '#ff3366', warning: '#ffb700', info: '#00f5ff', success: '#00ff88' };
-              const icons = { critical: '🔴', warning: '🟡', info: '🔵', success: '🟢' };
-              return (
-                <div key={i} style={{
-                  display: 'flex', gap: '12px', padding: '12px 14px',
-                  borderRadius: 'var(--radius-md)',
-                  background: `${colors[a.type]}08`,
-                  border: `1px solid ${colors[a.type]}25`,
-                }}>
-                  <span style={{ fontSize: '14px' }}>{icons[a.type]}</span>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '13px', color: 'var(--text-primary)' }}>{a.msg}</div>
-                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>{a.time}</div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="glass-card" style={{ padding: '24px' }}>
-          <div style={{ fontSize: '14px', fontWeight: '600', marginBottom: '16px' }}>Quick Controls</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-            {[
-              { label: 'Add Route', icon: '➕', color: '#00ff88' },
-              { label: 'Manage Drivers', icon: '👤', color: '#00f5ff' },
-              { label: 'Fare Config', icon: '₹', color: '#ffb700' },
-              { label: 'Send Alert', icon: '📢', color: '#ff3366' },
-              { label: 'View Reports', icon: '📊', color: '#8b5cf6' },
-              { label: 'System Config', icon: '⚙️', color: '#00f5ff' },
-            ].map(a => (
-              <button key={a.label} style={{
-                padding: '14px', borderRadius: 'var(--radius-md)',
-                background: `${a.color}08`, border: `1px solid ${a.color}30`,
-                color: a.color, cursor: 'pointer', fontFamily: 'Space Grotesk, sans-serif',
-                fontSize: '13px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px',
-                transition: 'all 0.2s',
-              }}
-                onMouseEnter={e => { e.currentTarget.style.background = `${a.color}18`; e.currentTarget.style.borderColor = `${a.color}60`; }}
-                onMouseLeave={e => { e.currentTarget.style.background = `${a.color}08`; e.currentTarget.style.borderColor = `${a.color}30`; }}
-              >
-                <span>{a.icon}</span>{a.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <ApiKeyManager />
     </div>
   );
 }

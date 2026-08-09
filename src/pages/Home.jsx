@@ -1,163 +1,127 @@
-import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { useApp } from '../context/AppContext';
-import PuneLiveMap from '../components/PuneLiveMap';
-
-const QUICK_ACTIONS = [
-  { label: 'Book Cab', detail: 'Nearby cars and autos', path: '/cab', icon: 'cab', color: '#22c1c3' },
-  { label: 'Metro Pass', detail: 'Recharge and trips', path: '/metro', icon: 'metro', color: '#6d7df2' },
-  { label: 'PMPL Bus', detail: 'Routes and arrivals', path: '/pmpl', icon: 'bus', color: '#42d3a7' },
-  { label: 'Parking', detail: 'Live slot finder', path: '/parking', icon: 'parking', color: '#f5b84b' },
-  { label: 'Route Plan', detail: 'Compare travel modes', path: '/route-planner', icon: 'route', color: '#ef6461' },
-  { label: 'Local Trains', detail: 'Suburban schedule', path: '/local-trains', icon: 'train', color: '#8b79f6' },
-];
-
-const LIVE_DATA = [
-  { label: 'Metro trains', value: '24', unit: 'active', trend: '+2 from last hour', color: '#6d7df2' },
-  { label: 'PMPL buses', value: '142', unit: 'on route', trend: '-3 from last hour', color: '#42d3a7' },
-  { label: 'Available cabs', value: '89', unit: 'nearby', trend: '+12 from last hour', color: '#22c1c3' },
-  { label: 'Parking slots', value: '318', unit: 'free', trend: '-45 from last hour', color: '#f5b84b' },
-];
-
-const RECENT_TRIPS = [
-  { id: 1, type: 'Metro', from: 'Swargate', to: 'Shivajinagar', time: '08:45 AM', fare: 'Rs 28', color: '#6d7df2' },
-  { id: 2, type: 'Cab', from: 'FC Road', to: 'COEP', time: 'Yesterday', fare: 'Rs 65', color: '#22c1c3' },
-  { id: 3, type: 'Bus', from: 'Deccan', to: 'Kothrud', time: '2 days ago', fare: 'Rs 18', color: '#42d3a7' },
-];
-
-const TICKERS = [
-  'Metro Line 1 has a minor delay at Swargate station.',
-  'PMPL Route 50 is running on schedule.',
-  'Cab demand is high near Shivajinagar.',
-  'Bund Garden parking has 45 open slots.',
-  'Route suggestion: save 12 minutes with Bus 125.',
-];
-
-const ActionIcon = ({ name }) => {
-  const common = { viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '1.8', strokeLinecap: 'round', strokeLinejoin: 'round' };
-  const icons = {
-    cab: <svg {...common}><path d="M5 17H3v-4.5L5.2 7h13.6L21 12.5V17h-2" /><path d="M7 17a2 2 0 1 0 0 .1M17 17a2 2 0 1 0 0 .1M5 12h14" /></svg>,
-    metro: <svg {...common}><rect x="4" y="3" width="16" height="13" rx="2.5" /><path d="M8 16 6.5 20M16 16l1.5 4M8 8h8M9 12h.01M15 12h.01" /></svg>,
-    bus: <svg {...common}><path d="M5 16V6.5A2.5 2.5 0 0 1 7.5 4h9A2.5 2.5 0 0 1 19 6.5V16l-2 2H7l-2-2Z" /><path d="M5 11h14M8 18v2M16 18v2M8.5 14h.01M15.5 14h.01" /></svg>,
-    parking: <svg {...common}><rect x="4" y="4" width="16" height="16" rx="2.5" /><path d="M10 17V7h4a3 3 0 0 1 0 6h-4" /></svg>,
-    route: <svg {...common}><circle cx="6" cy="6" r="2.2" /><circle cx="18" cy="18" r="2.2" /><path d="M6 8v3a3 3 0 0 0 3 3h6a3 3 0 0 1 3 3v1" /></svg>,
-    ai: <svg {...common}><rect x="5" y="8" width="14" height="11" rx="3" /><path d="M9 8V5m6 3V5M9.5 13h.01M14.5 13h.01M10 16h4" /></svg>,
-    train: <svg {...common}><rect x="4" y="3" width="16" height="16" rx="2"/><path d="M4 11h16M12 3v8M8 19l-2 3M18 22l-2-3M8 15h.01M16 15h.01"/></svg>
-  };
-  return icons[name] || null;
-};
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Wallet, Map, Train, Bus, Car, ArrowRight, Clock, MapPin, Ticket } from 'lucide-react';
+import { useAppContext } from '../context/AppContext';
 
 export default function Home() {
-  const { user } = useApp();
-  const [time, setTime] = useState(new Date());
-  const [tickerIdx, setTickerIdx] = useState(0);
+  const navigate = useNavigate();
+  const { user } = useAppContext();
 
-  useEffect(() => {
-    const clock = setInterval(() => setTime(new Date()), 1000);
-    const ticker = setInterval(() => setTickerIdx((idx) => (idx + 1) % TICKERS.length), 4500);
-    return () => {
-      clearInterval(clock);
-      clearInterval(ticker);
-    };
-  }, []);
-
-  const formattedDate = time.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' });
-
-  // Safe fallback if user name is missing
-  const firstName = user?.name ? user.name.split(' ')[0] : 'Explorer';
+  const quickActions = [
+    { label: 'Plan Route', icon: Map, color: 'text-blue-600', bg: 'bg-blue-50', path: '/route-planner' },
+    { label: 'Metro', icon: Train, color: 'text-purple-600', bg: 'bg-purple-50', path: '/metro' },
+    { label: 'PMPL Bus', icon: Bus, color: 'text-green-600', bg: 'bg-green-50', path: '/pmpl' },
+    { label: 'Cab & Auto', icon: Car, color: 'text-orange-600', bg: 'bg-orange-50', path: '/cab-auto' },
+  ];
 
   return (
-    <div className="home-page relative">
-      <section className="hero-panel">
-        <div className="hero-content">
-          <div className="eyebrow">{formattedDate}</div>
-          <h1 className="hero-title">Welcome back, {firstName}</h1>
-          <p className="hero-copy">A cleaner view of Pune mobility: metro, PMPL, cabs, parking, and route planning in one place.</p>
-          <div className="hero-actions">
-            <Link to="/route-planner" className="btn-primary"><ActionIcon name="route" />Plan journey</Link>
-            <Link to="/ai-chat" className="btn-secondary"><ActionIcon name="ai" />Ask MobilityAI</Link>
+    <div className="space-y-8 animate-fade-in">
+      {/* Greeting & Wallet Summary */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-[var(--color-text-primary)]">
+            Good afternoon, {user?.displayName?.split(' ')[0] || 'Traveler'}
+          </h1>
+          <p className="text-[var(--color-text-secondary)] mt-1">Where are we heading in Pune today?</p>
+        </div>
+        
+        <div 
+          onClick={() => navigate('/wallet')}
+          className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[var(--radius-lg)] p-4 flex items-center gap-4 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] transition-all cursor-pointer"
+        >
+          <div className="h-12 w-12 rounded-full bg-[var(--color-primary-soft)] flex items-center justify-center text-[var(--color-primary)]">
+            <Wallet size={24} />
           </div>
+          <div>
+            <p className="text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">Wallet Balance</p>
+            <p className="text-2xl font-bold text-[var(--color-text-primary)] leading-none mt-1">₹450.00</p>
+          </div>
+          <ArrowRight size={20} className="text-[var(--color-text-muted)] ml-2" />
         </div>
-        <div className="hero-clock">
-          <div className="clock-time">{time.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}</div>
-          <div className="clock-label">Network live</div>
-        </div>
-      </section>
+      </div>
 
-      <section className="ticker" aria-live="polite">
-        <div className="ticker-label">Live update</div>
-        <div className="ticker-text">{TICKERS[tickerIdx]}</div>
-      </section>
-
-      <section className="stats-grid" aria-label="Network status">
-        {LIVE_DATA.map((item) => (
-          <article className="stat-card" key={item.label}>
-            <div className="stat-label">{item.label}</div>
-            <div className="stat-value">
-              <span className="stat-number" style={{ color: item.color }}>{item.value}</span>
-              <span className="stat-unit">{item.unit}</span>
+      {/* Quick Actions Grid */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {quickActions.map((action, idx) => (
+          <button
+            key={idx}
+            onClick={() => navigate(action.path)}
+            className="bg-[var(--color-surface)] border border-[var(--color-border)] p-4 rounded-[var(--radius-lg)] flex flex-col items-center justify-center gap-3 shadow-sm hover:shadow-[var(--shadow-card-hover)] hover:border-[var(--color-border-strong)] transition-all group"
+          >
+            <div className={`h-12 w-12 rounded-full ${action.bg} ${action.color} flex items-center justify-center group-hover:scale-110 transition-transform`}>
+              <action.icon size={24} />
             </div>
-            <div className="stat-trend">{item.trend}</div>
-          </article>
+            <span className="font-semibold text-[var(--color-text-primary)]">{action.label}</span>
+          </button>
         ))}
-      </section>
+      </div>
 
-      <section>
-        <div className="section-head"><h2 className="section-title">Quick access</h2></div>
-        <div className="quick-grid">
-          {QUICK_ACTIONS.map((action) => (
-            <Link key={action.path} to={action.path} className="action-card" style={{ '--action-color': action.color }}>
-              <span className="action-icon"><ActionIcon name={action.icon} /></span>
-              <span>
-                <span className="action-label">{action.label}</span>
-                <span className="action-meta">{action.detail}</span>
-              </span>
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      <section className="dashboard-grid">
-        {/* Recent Trips Widget */}
-        <article className="panel map-panel">
-          <div className="section-head">
-            <h2 className="section-title">Recent trips</h2>
-            <Link to="/tickets" className="badge badge-cyan">View all</Link>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Active Journey */}
+        <div className="lg:col-span-2 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-bold text-[var(--color-text-primary)]">Active Journey</h2>
           </div>
-          <div className="trip-list">
-            {RECENT_TRIPS.map((trip) => (
-              <div className="trip-row" key={trip.id}>
-                <div className="trip-mode" style={{ '--mode-color': trip.color }}>{trip.type.charAt(0)}</div>
-                <div>
-                  <div className="trip-route">{trip.from} to {trip.to}</div>
-                  <div className="trip-meta">{trip.time} | {trip.type}</div>
+          <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[var(--radius-lg)] p-6 shadow-[var(--shadow-card)] relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-1.5 h-full bg-[var(--color-success)]"></div>
+            <div className="flex justify-between items-start mb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-green-50 text-[var(--color-success)] rounded-[var(--radius-sm)]">
+                  <Train size={20} />
                 </div>
-                <div className="trip-fare">{trip.fare}<div className="trip-status">Done</div></div>
+                <div>
+                  <h3 className="font-bold text-[var(--color-text-primary)]">Metro Aqua Line</h3>
+                  <p className="text-sm font-medium text-[var(--color-success)] flex items-center gap-1">
+                    <Clock size={14} /> On Time
+                  </p>
+                </div>
+              </div>
+              <span className="bg-[var(--color-bg-subtle)] text-[var(--color-text-secondary)] text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+                Live
+              </span>
+            </div>
+            
+            <div className="pl-4 border-l-2 border-dashed border-[var(--color-border-strong)] ml-4 space-y-6 relative mt-6">
+              <div className="relative">
+                <div className="absolute -left-[21px] top-1 h-3 w-3 rounded-full bg-[var(--color-success)] ring-4 ring-white"></div>
+                <p className="text-xs font-bold text-[var(--color-text-muted)] uppercase">Origin</p>
+                <p className="font-semibold text-[var(--color-text-primary)]">Vanaz Station</p>
+                <p className="text-sm text-[var(--color-text-secondary)]">Boarded at 2:15 PM</p>
+              </div>
+              <div className="relative">
+                <div className="absolute -left-[21px] top-1 h-3 w-3 rounded-full border-2 border-[var(--color-primary)] bg-white ring-4 ring-white"></div>
+                <p className="text-xs font-bold text-[var(--color-primary)] uppercase">Next Stop</p>
+                <p className="font-semibold text-[var(--color-text-primary)]">Deccan Gymkhana</p>
+                <p className="text-sm text-[var(--color-text-secondary)]">Arriving in 2 mins</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Recent Tickets */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-bold text-[var(--color-text-primary)]">Recent Tickets</h2>
+            <button onClick={() => navigate('/tickets')} className="text-sm font-medium text-[var(--color-primary)] hover:underline">View All</button>
+          </div>
+          <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[var(--radius-lg)] shadow-[var(--shadow-card)] overflow-hidden">
+            {[1, 2, 3].map((_, i) => (
+              <div key={i} className="p-4 border-b border-[var(--color-border)] last:border-0 flex items-center justify-between hover:bg-[var(--color-bg-subtle)] transition-colors cursor-pointer">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 bg-[var(--color-bg)] rounded-full flex items-center justify-center text-[var(--color-text-secondary)]">
+                    <Ticket size={18} />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-[var(--color-text-primary)] text-sm">PMPL Daily Pass</p>
+                    <p className="text-xs text-[var(--color-text-muted)]">Yesterday, 9:00 AM</p>
+                  </div>
+                </div>
+                <span className="font-semibold text-[var(--color-text-primary)]">₹50</span>
               </div>
             ))}
           </div>
-        </article>
-
-        {/* Real Mappls Live Map Component */}
-        <PuneLiveMap />
-
-      </section>
-
-      {/* Floating AI Chat Button */}
-      <Link 
-        to="/ai-chat" 
-        className="fixed bottom-8 right-8 z-50 flex items-center justify-center w-16 h-16 rounded-full shadow-2xl transition-transform hover:scale-110"
-        style={{ 
-          background: 'linear-gradient(135deg, #5a8dee, #8b79f6)', 
-          color: '#ffffff',
-          boxShadow: '0 8px 30px rgba(90, 141, 238, 0.4)'
-        }}
-        aria-label="Open AI Assistant"
-      >
-        <div className="w-8 h-8">
-          <ActionIcon name="ai" />
         </div>
-      </Link>
+      </div>
     </div>
   );
 }
