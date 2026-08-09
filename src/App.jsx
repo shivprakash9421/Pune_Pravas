@@ -1,29 +1,25 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { BrowserRouter } from 'react-router-dom';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { auth } from './firebase/firebase';
 import { AppProvider } from './context/AppContext';
 import AppRoutes from './routes/AppRoutes';
 import AuthPage from './pages/AuthPage';
 import './index.css';
 
 export default function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(
-    () => localStorage.getItem('punepravas_auth') === 'true'
-  );
+  const [user, setUser] = useState(undefined);
 
-  const handleLogin = () => {
-    localStorage.setItem('punepravas_auth', 'true');
-    setIsAuthenticated(true);
-  };
+  useEffect(() => onAuthStateChanged(auth, setUser), []);
 
-  const handleLogout = () => {
-    localStorage.removeItem('punepravas_auth');
-    setIsAuthenticated(false);
-  };
+  const handleLogout = () => signOut(auth);
+
+  if (user === undefined) return null;
 
   return (
     <BrowserRouter>
       <AppProvider onLogout={handleLogout}>
-        {isAuthenticated ? (
+        {user ? (
           <AppRoutes />
         ) : (
           <AuthPage onLogin={handleLogin} />

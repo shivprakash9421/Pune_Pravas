@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { auth } from '../firebase/firebase';
 
 const METRICS = [
   { label: 'Total Rides Today', value: '18,420', change: '+12%', color: '#00f5ff' },
@@ -24,6 +25,33 @@ const RECENT_ALERTS = [
 
 const BAR_DATA = [65, 80, 72, 90, 85, 70, 88, 95, 78, 82, 91, 87];
 const LABELS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+function ApiKeyManager() {
+  const [keys, setKeys] = useState([]);
+  const [name, setName] = useState('');
+  const [newKey, setNewKey] = useState('');
+  const [error, setError] = useState('');
+  const apiBase = import.meta.env.VITE_API_BASE_URL;
+  const request = async (path, options = {}) => {
+    if (!apiBase) throw new Error('Set VITE_API_BASE_URL in .env.local to enable API key management.');
+    const token = await auth.currentUser.getIdToken();
+    const response = await fetch(`${apiBase}${path}`, { ...options, headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', ...(options.headers || {}) } });
+    if (!response.ok) { const body = await response.json().catch(() => ({})); throw new Error(body.error?.message || 'Request failed.'); }
+    return response.status === 204 ? null : response.json();
+  };
+  const load = async () => { try { setKeys((await request('/admin/api-keys')).items); } catch (err) { setError(err.message); } };
+  useEffect(() => { load(); }, []);
+  const create = async (event) => { event.preventDefault(); setError(''); try { const data = await request('/admin/api-keys', { method: 'POST', body: JSON.stringify({name}) }); setNewKey(data.apiKey); setName(''); await load(); } catch (err) { setError(err.message); } };
+  const revoke = async (id) => { if (!window.confirm('Revoke this API key? This cannot be undone.')) return; try { await request(`/admin/api-keys/${id}`, {method: 'DELETE'}); await load(); } catch (err) { setError(err.message); } };
+  return <div className="glass-card" style={{ padding: '24px' }}>
+    <div style={{ fontSize: '14px', fontWeight: 700, marginBottom: '6px' }}>API Key Management</div>
+    <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '16px' }}>Keys are shown only once at creation and are stored hashed on the server.</div>
+    <form onSubmit={create} style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}><input required value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Operations integration" style={{ flex: 1, padding: '9px 12px', borderRadius: 7, border: '1px solid rgba(0,245,255,.3)', background: '#091323', color: '#fff' }} /><button style={{ padding: '9px 14px', border: 0, borderRadius: 7, cursor: 'pointer', fontWeight: 700, background: '#00f5ff' }}>Create key</button></form>
+    {newKey && <div style={{ marginBottom: '14px', padding: '10px', borderRadius: 7, background: 'rgba(0,255,136,.1)', color: '#00ff88', wordBreak: 'break-all' }}>Copy now: <code>{newKey}</code></div>}
+    {error && <div style={{ color: '#ff829d', fontSize: 12, marginBottom: 10 }}>{error}</div>}
+    {keys.map(key => <div key={key.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 0', borderTop: '1px solid rgba(255,255,255,.08)' }}><div style={{ flex: 1 }}><div style={{ fontSize: 13 }}>{key.name}</div><div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{key.prefix}… {key.revoked ? '• Revoked' : '• Active'}</div></div>{!key.revoked && <button onClick={() => revoke(key.id)} style={{ border: 0, borderRadius: 6, padding: '6px 10px', color: '#ff829d', background: 'rgba(255,51,102,.12)', cursor: 'pointer' }}>Revoke</button>}</div>)}
+  </div>;
+}
 
 export default function AdminDashboard() {
   const [timeRange, setTimeRange] = useState('today');
@@ -178,6 +206,8 @@ export default function AdminDashboard() {
           </div>
         </div>
       </div>
+
+      <ApiKeyManager />
     </div>
   );
 }

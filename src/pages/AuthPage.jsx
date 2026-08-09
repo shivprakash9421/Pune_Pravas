@@ -1,4 +1,7 @@
 import React, { useState } from 'react';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithPopup, updateProfile } from 'firebase/auth';
+import { httpsCallable } from 'firebase/functions';
+import { auth, functions, googleProvider } from '../firebase/firebase';
 
 export default function AuthPage({ onLogin }) {
   const [isLogin, setIsLogin] = useState(true);
@@ -7,10 +10,47 @@ export default function AuthPage({ onLogin }) {
   const [password, setPassword] = useState('');
   const [phone, setPhone] = useState('');
   const [name, setName] = useState('');
+  const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleAuth = (e) => {
+  const provisionUser = async (user, displayName) => {
+    await httpsCallable(functions, 'createUserProfile')({ name: displayName || user.displayName || 'Member' });
+    // Only the address stored in the server-side ADMIN_BOOTSTRAP_EMAIL secret can succeed.
+    // Other signed-in users receive permission-denied, which is intentionally ignored here.
+    try {
+      await httpsCallable(functions, 'bootstrapAdmin')({});
+      await user.getIdToken(true);
+    } catch (_) { /* normal user */ }
+  };
+
+  const handleAuth = async (e) => {
     e.preventDefault();
-    onLogin();
+    setError('');
+    setSubmitting(true);
+    try {
+      if (authMethod === 'phone') throw new Error('Phone sign-in needs Firebase Phone Authentication and reCAPTCHA configuration. Please use email or Google for now.');
+      if (isLogin) {
+        const credential = await signInWithEmailAndPassword(auth, email, password);
+        await provisionUser(credential.user);
+      } else {
+        const credential = await createUserWithEmailAndPassword(auth, email, password);
+        await updateProfile(credential.user, { displayName: name });
+        await provisionUser(credential.user, name);
+      }
+      onLogin?.();
+    } catch (err) {
+      setError(err.message.replace('Firebase: ', ''));
+    } finally { setSubmitting(false); }
+  };
+
+  const handleGoogle = async () => {
+    setError(''); setSubmitting(true);
+    try {
+      const credential = await signInWithPopup(auth, googleProvider);
+      await provisionUser(credential.user, credential.user.displayName || 'Member');
+      onLogin?.();
+    } catch (err) { setError(err.message.replace('Firebase: ', '')); }
+    finally { setSubmitting(false); }
   };
 
   const labelStyle = {
@@ -176,7 +216,7 @@ export default function AuthPage({ onLogin }) {
               fontWeight: '800', borderRadius: '8px', border: '1px solid rgba(66,211,167,0.5)',
               background: 'linear-gradient(135deg, #42d3a7, #22c1c3)', color: '#06111f', cursor: 'pointer',
             }}>
-              {isLogin ? 'Sign in' : 'Create account'}
+              {submitting ? 'Please wait…' : isLogin ? 'Sign in' : 'Create account'}
             </button>
           </form>
         )}
@@ -209,7 +249,7 @@ export default function AuthPage({ onLogin }) {
           <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.08)' }} />
         </div>
 
-        <button onClick={() => onLogin()} style={{
+        <button onClick={handleGoogle} disabled={submitting} style={{
           width: '100%', height: '44px', borderRadius: '8px',
           border: '1px solid rgba(255,255,255,0.12)',
           background: 'rgba(255,255,255,0.05)', color: '#f5f7fb',
@@ -228,6 +268,8 @@ export default function AuthPage({ onLogin }) {
           </svg>
           Continue with Google
         </button>
+
+        {error && <p role="alert" style={{ margin: '14px 0 0', color: '#ff829d', fontSize: '12px', lineHeight: 1.5 }}>{error}</p>}
 
         <p style={{ marginTop: '24px', textAlign: 'center', fontSize: '13px', color: '#8b9cb8' }}>
           {isLogin ? "Don't have an account? " : 'Already have an account? '}

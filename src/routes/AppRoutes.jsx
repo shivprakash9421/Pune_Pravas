@@ -1,5 +1,6 @@
-import React from 'react';
-import { Routes, Route } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
+import { auth } from '../firebase/firebase';
 import MainLayout from '../layouts/MainLayout';
 
 // Import all your pages
@@ -16,6 +17,15 @@ import Profile from '../pages/Profile';
 import Notifications from '../pages/Notifications';
 import AdminDashboard from '../pages/AdminDashboard';
 import Local from '../pages/Local'; // 
+
+function AdminRoute() {
+  const [allowed, setAllowed] = useState(null);
+  useEffect(() => {
+    auth.currentUser?.getIdTokenResult().then((token) => setAllowed(token.claims.admin === true)).catch(() => setAllowed(false));
+  }, []);
+  if (allowed === null) return null;
+  return allowed ? <AdminDashboard /> : <Navigate to="/" replace />;
+}
 export default function AppRoutes() {
   return (
     <MainLayout>
@@ -35,7 +45,7 @@ export default function AppRoutes() {
         <Route path="/wallet" element={<Wallet />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/notifications" element={<Notifications />} />
-        <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="/admin" element={<AdminRoute />} />
       </Routes>
     </MainLayout>
   );
