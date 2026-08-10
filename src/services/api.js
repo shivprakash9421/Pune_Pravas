@@ -15,7 +15,8 @@ export const fetchSecureData = async (endpoint, method = "GET", body = null) => 
   const token = await user.getIdToken();
 
   // Region is asia-south1
-  const BASE_URL = "https://punepravas.onrender.com"; 
+  // Replace with your actual Render backend URL (No slash at the end!)
+  const BASE_URL = "https://punepravas.onrender.com";
   const headers = {
     "Authorization": `Bearer ${token}`,
     "Content-Type": "application/json"
