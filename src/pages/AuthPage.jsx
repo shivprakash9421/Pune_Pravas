@@ -6,10 +6,9 @@ export default function AuthPage() {
   const [authMethod, setAuthMethod] = useState('email');
   const navigate = useNavigate();
 
-  // Explicitly defined to completely eliminate the ReferenceError
   const handleLogin = (e) => {
     e.preventDefault();
-    console.log('Login form submitted');
+    console.log('Authenticating...');
   };
 
   const handleGoogleAuth = () => {
@@ -162,8 +161,7 @@ export default function AuthPage() {
           <p className="mt-8 text-center text-sm text-slate-400">
             {authMode === 'login' ? "Don't have an account? " : "Already have an account? "}
             <button 
-              onClick={() => setAuthModel ? null : setAuthMode(authMode === 'login' ? 'signup' : 'login')}
-              onMouseDown={() => setAuthMode(authMode === 'login' ? 'signup' : 'login')}
+              onClick={() => setAuthMode(authMode === 'login' ? 'signup' : 'login')}
               className="text-[#00D4FF] font-bold hover:text-white transition-colors cursor-pointer"
             >
               {authMode === 'login' ? 'Sign up' : 'Sign in'}

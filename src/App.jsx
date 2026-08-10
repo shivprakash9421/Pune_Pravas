@@ -22,7 +22,8 @@ export default function App() {
         {user ? (
           <AppRoutes />
         ) : (
-          <AuthPage onLogin={handleLogin} />
+          
+          <AuthPage />
         )}
       </AppProvider>
     </BrowserRouter>
