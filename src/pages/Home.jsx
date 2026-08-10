@@ -1,11 +1,16 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Wallet, Map, TrainFront, Bus, Car, ChevronRight, Clock, MapPin, Ticket } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
+// 1. IMPORT THE API HELPER
+import { fetchSecureData } from '../utils/api';
 
 export default function Home() {
   const navigate = useNavigate();
   const { user } = useAppContext();
+  
+  // 2. ADD STATE FOR THE ADMIN BUTTON
+  const [status, setStatus] = useState("");
 
   const quickActions = [
     { label: 'Plan Route', icon: Map, color: 'text-blue-500', bg: 'bg-blue-50', path: '/route-planner' },
@@ -13,6 +18,24 @@ export default function Home() {
     { label: 'PMPL Bus', icon: Bus, color: 'text-emerald-500', bg: 'bg-emerald-50', path: '/pmpl' },
     { label: 'Cabs & Auto', icon: Car, color: 'text-amber-500', bg: 'bg-amber-50', path: '/cab-auto' },
   ];
+
+  // 3. ADD THE FUNCTION TO CALL YOUR BACKEND
+  const handleMakeAdmin = async () => {
+    try {
+      setStatus("Granting admin privileges...");
+      
+      await fetchSecureData("/auth/bootstrap", "POST", { 
+        email: "shivprakash0244@gmail.com" 
+      });
+      
+      setStatus("Success! You are now an Admin.");
+      alert("Admin access granted! Please log out and log back in to refresh your permissions.");
+      
+    } catch (error) {
+      console.error(error);
+      setStatus(`Error: ${error.message}`);
+    }
+  };
 
   return (
     <div className="max-w-6xl mx-auto space-y-8 animate-fade-in font-sans">
@@ -122,6 +145,22 @@ export default function Home() {
           </div>
         </div>
       </div>
+
+      {/* 4. TEMPORARY DEVELOPER UI (Delete this after you make yourself admin) */}
+      <div className="bg-red-50 border border-red-200 rounded-2xl p-6 shadow-sm mt-8">
+        <h2 className="text-lg font-bold text-red-900 mb-2">Developer Setup</h2>
+        <p className="text-sm text-red-700 mb-4">Click below to permanently grant your account Admin privileges. Delete this box from the code afterwards.</p>
+        <div className="flex items-center gap-4">
+          <button 
+            onClick={handleMakeAdmin} 
+            className="bg-red-600 text-white font-bold py-2 px-6 rounded-xl hover:bg-red-700 transition-colors"
+          >
+            Make Me Admin
+          </button>
+          <span className="font-bold text-red-800">{status}</span>
+        </div>
+      </div>
+
     </div>
   );
 }
