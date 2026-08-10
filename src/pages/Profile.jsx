@@ -1,6 +1,9 @@
 import React from 'react';
 import { User, Settings, Shield, LogOut, ChevronRight } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
+import { signOut } from "firebase/auth";
+import { auth } from "../firebase/firebase";
+import { useNavigate } from "react-router-dom";
 
 export default function Profile() {
   const { user } = useAppContext();
@@ -68,3 +71,16 @@ export default function Profile() {
     </div>
   );
 }
+const navigate = useNavigate();
+
+const handleSignOut = async () => {
+  try {
+    await signOut(auth);
+    navigate('/login'); // Or wherever your AuthPage is mapped
+  } catch (error) {
+    console.error("Error signing out: ", error);
+  }
+};
+<button onClick={handleSignOut} className="your-tailwind-classes-here">
+  Sign Out
+</button>

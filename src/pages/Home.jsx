@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Wallet, Map, TrainFront, Bus, Car, ChevronRight, Clock, MapPin, Ticket } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 // 1. IMPORT THE API HELPER
-import { fetchSecureData } from '../utils/api';
+import { fetchSecureData } from '../services/api';
 
 export default function Home() {
   const navigate = useNavigate();

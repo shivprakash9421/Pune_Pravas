@@ -15,8 +15,7 @@ export const fetchSecureData = async (endpoint, method = "GET", body = null) => 
   const token = await user.getIdToken();
 
   // Region is asia-south1
-  const BASE_URL = "https://asia-south1-mobilityos-3c7e5.cloudfunctions.net";
-
+  const BASE_URL = "https://punepravas.onrender.com"; 
   const headers = {
     "Authorization": `Bearer ${token}`,
     "Content-Type": "application/json"

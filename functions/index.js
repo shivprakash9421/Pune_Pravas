@@ -1,24 +1,30 @@
-const { setGlobalOptions } = require('firebase-functions/v2');
-const { onRequest } = require('firebase-functions/v2/https');
+const express = require("express");
+const cors = require("cors");
+const admin = require("firebase-admin");
 
-// Set deployment region globally (Do not change)
-setGlobalOptions({ region: 'asia-south1' });
+// Initialize Firebase Admin (We will add the credentials in Render later)
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential: admin.credential.applicationDefault()
+  });
+}
 
-// Import Service Modules
-const authService = require('./src/services/auth.service');
-const userService = require('./src/services/user.service');
+const app = express();
 
-// 1. Auth & Admin Services
-exports.bootstrapAdmin = authService.bootstrapAdmin;
+// Middleware
+app.use(cors({ origin: true }));
+app.use(express.json());
 
-// 2. User Services
-exports.createUserProfile = userService.createUserProfile;
-exports.updatePreferences = userService.updatePreferences;
-exports.me = userService.me;
-
-// 3. System Endpoints
-exports.health = onRequest((req, res) => {
-  res.status(200).json({ status: 'OK', service: 'MobilityOS API Gateway' });
+// Basic Health Check Route
+app.get("/health", (req, res) => {
+  res.status(200).json({ status: "OK", message: "Pune Pravas Backend is running on Render!" });
 });
 
-// Note: Admin dashboard & API keys, Bookings, Wallet, and Maps will be added here next.
+// Import your services here later (we will rewrite auth.service.js to standard Express next)
+// app.use("/auth", authRoutes);
+
+// Start the server
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});

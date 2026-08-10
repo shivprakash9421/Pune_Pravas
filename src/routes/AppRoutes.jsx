@@ -1,52 +1,55 @@
-import React, { useEffect, useState } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
-import { auth } from '../firebase/firebase';
+import React from 'react';
+import { Routes, Route } from 'react-router-dom';
 import MainLayout from '../layouts/MainLayout';
 
-// Import all your pages
+// Pages
 import Home from '../pages/Home';
-import AIChat from '../pages/AIChat';
-import CabAuto from '../pages/CabAuto';
+import AuthPage from '../pages/AuthPage';
+import AdminDashboard from '../pages/AdminDashboard';
+import RoutePlanner from '../pages/RoutePlanner';
 import Metro from '../pages/Metro';
 import PMPL from '../pages/PMPL';
-import RoutePlanner from '../pages/RoutePlanner';
+import Local from '../pages/Local';
+import CabAuto from '../pages/CabAuto';
 import Tickets from '../pages/Tickets';
 import Parking from '../pages/Parking';
 import Wallet from '../pages/Wallet';
+import AIChat from '../pages/AIChat';
 import Profile from '../pages/Profile';
 import Notifications from '../pages/Notifications';
-import AdminDashboard from '../pages/AdminDashboard';
-import Local from '../pages/Local'; // 
 
-function AdminRoute() {
-  const [allowed, setAllowed] = useState(null);
-  useEffect(() => {
-    auth.currentUser?.getIdTokenResult().then((token) => setAllowed(token.claims.admin === true)).catch(() => setAllowed(false));
-  }, []);
-  if (allowed === null) return null;
-  return allowed ? <AdminDashboard /> : <Navigate to="/" replace />;
-}
 export default function AppRoutes() {
   return (
-    <MainLayout>
-      <Routes>
+    <Routes>
+      {/* Public Routes */}
+      <Route path="/login" element={<AuthPage />} />
+      <Route path="/signup" element={<AuthPage />} />
+
+      {/* App Routes wrapped in your sidebar layout */}
+      <Route element={<MainLayout />}>
         <Route path="/" element={<Home />} />
-        <Route path="/ai-chat" element={<AIChat />} />
-        <Route path="/cab" element={<CabAuto />} />
+        <Route path="/admin" element={<AdminDashboard />} />
+        
+        {/* Mobility Features */}
+        <Route path="/route-planner" element={<RoutePlanner />} />
         <Route path="/metro" element={<Metro />} />
         <Route path="/pmpl" element={<PMPL />} />
+        <Route path="/local-train" element={<Local />} />
+        <Route path="/cab-auto" element={<CabAuto />} />
         
-        {/* 👈 ADD THIS ROUTE FOR LOCAL TRAINS */}
-        <Route path="/local" element={<Local />} /> 
-        
-        <Route path="/route-planner" element={<RoutePlanner />} />
+        {/* Core App Features */}
         <Route path="/tickets" element={<Tickets />} />
         <Route path="/parking" element={<Parking />} />
         <Route path="/wallet" element={<Wallet />} />
+        <Route path="/ai-assistant" element={<AIChat />} />
+        
+        {/* User Features */}
         <Route path="/profile" element={<Profile />} />
         <Route path="/notifications" element={<Notifications />} />
-        <Route path="/admin" element={<AdminRoute />} />
-      </Routes>
-    </MainLayout>
+
+        {/* Catch-all route: If a user types a bad URL, send them back Home */}
+        <Route path="*" element={<Home />} />
+      </Route>
+    </Routes>
   );
 }
