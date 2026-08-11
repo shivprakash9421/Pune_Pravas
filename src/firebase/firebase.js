@@ -2,9 +2,8 @@ import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
-// We are HARDCODING this so Render never crashes looking for a .env file again.
 const firebaseConfig = {
-  apiKey: "PASTE_YOUR_ACTUAL_API_KEY_HERE", // <--- Replace this string with your real API key
+  apiKey: "AIzaSyCWBCZkm6XVp-UNCdjAFBIYDtTbbbLRB44",
   authDomain: "mobilityos-3c7e5.firebaseapp.com",
   projectId: "mobilityos-3c7e5",
   storageBucket: "mobilityos-3c7e5.firebasestorage.app",
