@@ -6,24 +6,31 @@ const AppContext = createContext();
 
 export function AppProvider({ children }) {
   const [user, setUser] = useState(null);
+  const [role, setRole] = useState(null); // 'admin' | 'user' | null
   const [unreadCount, setUnreadCount] = useState(2);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Listen to actual Firebase auth state
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
+      if (currentUser) {
+        const tokenResult = await currentUser.getIdTokenResult();
+        setRole(
+          tokenResult.claims.admin === true || tokenResult.claims.role === 'admin'
+            ? 'admin'
+            : 'user'
+        );
+      } else {
+        setRole(null);
+      }
       setLoading(false);
     });
     return () => unsubscribe();
   }, []);
 
   const value = {
-    user,
-    setUser,
-    unreadCount,
-    setUnreadCount,
-    loading
+    user, setUser, role, isAdmin: role === 'admin',
+    unreadCount, setUnreadCount, loading,
   };
 
   return (

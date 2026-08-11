@@ -11,6 +11,16 @@ service cloud.firestore {
         && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'balance']);
       allow delete: if false;
     }
+
+    match /tickets/{ticketId} {
+      allow read: if signedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if false; // only the server (Admin SDK) creates tickets
+      allow update: if signedIn() && resource.data.userId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'usedAt'])
+        && request.resource.data.status == 'used';
+      allow delete: if false;
+    }
+
     match /apiKeys/{keyId} { allow read, write: if isAdmin(); }
     match /{document=**} { allow read, write: if false; }
   }
