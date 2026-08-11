@@ -14,12 +14,19 @@ export function AppProvider({ children }) {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
       if (currentUser) {
-        const tokenResult = await currentUser.getIdTokenResult();
-        setRole(
-          tokenResult.claims.admin === true || tokenResult.claims.role === 'admin'
-            ? 'admin'
-            : 'user'
-        );
+        try {
+          const tokenResult = await currentUser.getIdTokenResult();
+          
+          // STRICT ADMIN CHECK: Instantly grants admin to your specific email
+          const isOwner = currentUser.email === 'shivprakash0244@gmail.com';
+          const hasAdminToken = tokenResult.claims.admin === true || tokenResult.claims.role === 'admin';
+
+          setRole(isOwner || hasAdminToken ? 'admin' : 'user');
+        } catch (err) {
+          console.error("Error fetching token:", err);
+          // Fallback just in case the token fetch fails
+          setRole(currentUser.email === 'shivprakash0244@gmail.com' ? 'admin' : 'user');
+        }
       } else {
         setRole(null);
       }
