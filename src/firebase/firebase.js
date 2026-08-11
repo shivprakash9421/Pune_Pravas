@@ -3,7 +3,7 @@ import { getAuth, GoogleAuthProvider } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCWBCZkm6XVp-UNCdjAFBIYDtTbbbLRB44",
+  apiKey: "AIzaSyCWBcZkm6XVp-UNCdjAFBIYDtTbbbLRB44", // Fixed the lowercase 'c' here!
   authDomain: "mobilityos-3c7e5.firebaseapp.com",
   projectId: "mobilityos-3c7e5",
   storageBucket: "mobilityos-3c7e5.firebasestorage.app",
