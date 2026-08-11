@@ -1,81 +1,124 @@
-import React from 'react';
-import { TrainFront, ArrowRightLeft, MapPin, Search, AlertCircle } from 'lucide-react';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { TrainFront, ArrowDownUp } from 'lucide-react';
+import { purchaseTicket } from '../services/tickets';
+
+const PURPLE_LINE = ['PCMC Bhavan', 'Sant Tukaram Nagar', 'Nashik Phata', 'Kasarwadi', 'Phugewadi', 'Dapodi', 'Bopodi', 'Khadki', 'Range Hill', 'Shivaji Nagar', 'Civil Court', 'Budhwar Peth', 'Mandai', 'Swargate'];
+const AQUA_LINE = ['Vanaz', 'Anand Nagar', 'Ideal Colony', 'Nal Stop', 'Garware College', 'Deccan Gymkhana', 'Chhatrapati Sambhaji Udyan', 'PMC Bhavan', 'Civil Court', 'Mangalwar Peth', 'Pune Railway Station', 'Ruby Hall Clinic', 'Bund Garden', 'Yerawada', 'Kalyani Nagar', 'Ramwadi'];
+const ALL_STATIONS = [...new Set([...PURPLE_LINE, ...AQUA_LINE])].sort();
 
 export default function Metro() {
-  const lines = [
-    { name: 'Purple Line', route: 'PCMC Bhavan ↔ Swargate', status: 'Normal Service', color: 'bg-purple-500' },
-    { name: 'Aqua Line', route: 'Vanaz ↔ Ramwadi', status: 'Normal Service', color: 'bg-teal-500' },
-    { name: 'Line 3', route: 'Hinjewadi ↔ Civil Court', status: 'Under Construction', color: 'bg-slate-300' },
-  ];
+  const navigate = useNavigate();
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const calculateFare = () => {
+    if (!from || !to || from === to) return 0;
+    return Math.floor(Math.random() * 20) + 10; // Placeholder for actual distance logic
+  };
+
+  const fare = calculateFare();
+
+  const handleSwap = () => {
+    setFrom(to);
+    setTo(from);
+  };
+
+  const handleBook = async () => {
+    if (!from || !to || from === to) return alert('Please select valid stations.');
+    setBusy(true);
+    try {
+      await purchaseTicket({ type: 'metro', from, to });
+      navigate('/tickets');
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setBusy(false);
+    }
+  };
 
   return (
-    <div className="space-y-8 animate-fade-in max-w-5xl mx-auto">
+    <div className="space-y-6 max-w-5xl mx-auto">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-[var(--color-text-primary)]">Pune Metro</h1>
-        <p className="text-[var(--color-text-secondary)] mt-1">Book QR tickets and check live train frequencies.</p>
+        <h1 className="text-3xl font-bold text-slate-800">Pune Metro</h1>
+        <p className="text-slate-500 mt-1">Book QR tickets and check live train frequencies.</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Booking Card */}
-        <div className="lg:col-span-2 bg-[var(--color-surface)] rounded-[var(--radius-lg)] shadow-[var(--shadow-card)] border border-[var(--color-border)] p-6">
-          <h2 className="text-lg font-bold text-[var(--color-text-primary)] mb-6 flex items-center gap-2">
-            <TrainFront size={20} className="text-[var(--color-primary)]" /> Book Metro Ticket
-          </h2>
-          
-          <div className="space-y-4">
-            <div className="relative">
-              <label className="block text-xs font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider mb-2">Departing From</label>
-              <div className="relative">
-                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" size={20} />
-                <input type="text" placeholder="Select Station..." className="w-full pl-10 pr-4 py-3 bg-[var(--color-bg-subtle)] border border-[var(--color-border)] rounded-[var(--radius-md)] focus:bg-white focus:border-[var(--color-primary)] transition-all outline-none" />
-              </div>
+      <div className="grid md:grid-cols-3 gap-6">
+        <div className="md:col-span-2 bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+          <div className="flex items-center gap-2 mb-6">
+            <TrainFront className="text-emerald-600" size={24} />
+            <h2 className="text-lg font-bold text-slate-800">Book Metro Ticket</h2>
+          </div>
+
+          <div className="space-y-4 relative">
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Departing From</label>
+              <select 
+                value={from} 
+                onChange={(e) => setFrom(e.target.value)}
+                className="w-full p-3 rounded-lg border border-slate-300 bg-slate-50 focus:outline-none focus:border-emerald-500 text-slate-800"
+              >
+                <option value="">Select Station...</option>
+                {ALL_STATIONS.map(st => <option key={`from-${st}`} value={st}>{st}</option>)}
+              </select>
             </div>
 
-            <div className="flex justify-center -my-2 relative z-10">
-              <button className="p-2 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-full hover:bg-[var(--color-bg-subtle)] transition-colors shadow-sm">
-                <ArrowRightLeft size={16} className="text-[var(--color-text-secondary)] rotate-90" />
-              </button>
-            </div>
+            <button 
+              onClick={handleSwap}
+              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white border border-slate-200 p-2 rounded-full shadow-sm hover:bg-slate-50 z-10"
+            >
+              <ArrowDownUp size={16} className="text-slate-600" />
+            </button>
 
-            <div className="relative">
-              <label className="block text-xs font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider mb-2">Going To</label>
-              <div className="relative">
-                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-primary)]" size={20} />
-                <input type="text" placeholder="Select Station..." className="w-full pl-10 pr-4 py-3 bg-[var(--color-bg-subtle)] border border-[var(--color-border)] rounded-[var(--radius-md)] focus:bg-white focus:border-[var(--color-primary)] transition-all outline-none" />
-              </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 pt-2">Going To</label>
+              <select 
+                value={to} 
+                onChange={(e) => setTo(e.target.value)}
+                className="w-full p-3 rounded-lg border border-slate-300 bg-slate-50 focus:outline-none focus:border-emerald-500 text-slate-800"
+              >
+                <option value="">Select Station...</option>
+                {ALL_STATIONS.map(st => <option key={`to-${st}`} value={st}>{st}</option>)}
+              </select>
             </div>
+          </div>
 
-            <div className="pt-4 flex items-center justify-between border-t border-[var(--color-border)] mt-6">
-              <div>
-                <p className="text-sm text-[var(--color-text-secondary)]">Total Fare</p>
-                <p className="text-2xl font-bold text-[var(--color-text-primary)]">₹0</p>
-              </div>
-              <button className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white px-8 py-3 rounded-[var(--radius-md)] font-medium transition-colors shadow-sm flex items-center gap-2 disabled:opacity-50">
-                Proceed to Pay
-              </button>
+          <div className="mt-8 flex items-center justify-between border-t border-slate-100 pt-6">
+            <div>
+              <p className="text-sm text-slate-500 font-medium">Total Fare</p>
+              <p className="text-3xl font-bold text-slate-800">INR {fare}</p>
             </div>
+            <button 
+              onClick={handleBook}
+              disabled={busy || !fare}
+              className="px-6 py-3 bg-emerald-600 text-white font-medium rounded-lg hover:bg-emerald-700 disabled:opacity-50 transition-colors"
+            >
+              {busy ? 'Processing...' : 'Proceed to Pay'}
+            </button>
           </div>
         </div>
 
-        {/* Network Status */}
         <div className="space-y-4">
-          <h2 className="text-lg font-bold text-[var(--color-text-primary)]">Network Status</h2>
-          <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[var(--radius-lg)] shadow-[var(--shadow-card)] overflow-hidden">
-            {lines.map((line, idx) => (
-              <div key={idx} className="p-4 border-b border-[var(--color-border)] last:border-0">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className={`w-3 h-3 rounded-full ${line.color}`}></div>
-                  <h3 className="font-bold text-[var(--color-text-primary)]">{line.name}</h3>
-                </div>
-                <p className="text-sm text-[var(--color-text-secondary)] mb-2 pl-6">{line.route}</p>
-                <div className="pl-6">
-                  <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold ${line.status === 'Normal Service' ? 'bg-green-50 text-[var(--color-success)]' : 'bg-slate-100 text-slate-500'}`}>
-                    {line.status === 'Normal Service' ? <TrainFront size={12}/> : <AlertCircle size={12}/>}
-                    {line.status}
-                  </span>
-                </div>
-              </div>
-            ))}
+          <h3 className="font-bold text-slate-800 mb-2">Network Status</h3>
+          
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 border-l-4 border-l-purple-600">
+            <h4 className="font-bold text-purple-700 mb-1">Purple Line</h4>
+            <p className="text-sm text-slate-600 mb-2">PCMC Bhavan - Swargate</p>
+            <span className="inline-block px-2 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded">Normal Service</span>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 border-l-4 border-l-cyan-500">
+            <h4 className="font-bold text-cyan-700 mb-1">Aqua Line</h4>
+            <p className="text-sm text-slate-600 mb-2">Vanaz - Ramwadi</p>
+            <span className="inline-block px-2 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded">Normal Service</span>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 border-l-4 border-l-slate-300">
+            <h4 className="font-bold text-slate-700 mb-1">Line 3</h4>
+            <p className="text-sm text-slate-600 mb-2">Hinjewadi - Civil Court</p>
+            <span className="inline-block px-2 py-1 bg-slate-100 text-slate-600 text-xs font-semibold rounded">Under Construction</span>
           </div>
         </div>
       </div>

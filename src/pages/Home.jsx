@@ -56,15 +56,15 @@ export default function Home() {
            </h3>
            <div className="space-y-3">
              <div className="flex justify-between items-center text-sm p-3 bg-purple-50 text-purple-700 rounded-lg font-medium">
-               <span>🚇 Purple Line (PCMC ↔ Swargate)</span>
+               <span> Purple Line (PCMC ↔ Swargate)</span>
                <span className="px-2 py-1 bg-white rounded shadow-sm text-xs">Active</span>
              </div>
              <div className="flex justify-between items-center text-sm p-3 bg-cyan-50 text-cyan-700 rounded-lg font-medium">
-               <span>🚇 Aqua Line (Vanaz ↔ Ramwadi)</span>
+               <span>Aqua Line (Vanaz ↔ Ramwadi)</span>
                <span className="px-2 py-1 bg-white rounded shadow-sm text-xs">Active</span>
              </div>
              <div className="flex justify-between items-center text-sm p-3 bg-emerald-50 text-emerald-700 rounded-lg font-medium">
-               <span>🚌 PMPML Routes</span>
+               <span>PMPML Routes</span>
                <span className="px-2 py-1 bg-white rounded shadow-sm text-xs">Live</span>
              </div>
            </div>
