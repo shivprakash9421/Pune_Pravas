@@ -10,20 +10,21 @@ export default function RoutePlanner() {
     e.preventDefault();
     if (!origin || !destination) return;
     
-    // Replace 'YOUR_GOOGLE_MAPS_API_KEY' with your actual key from Google Cloud Console.
-    const apiKey = 'YOUR_GOOGLE_MAPS_API_KEY';
+    // Replace this string with your Google Maps Embed API key
+    const apiKey = 'YOUR_API_KEY_HERE'; 
     const encodedOrigin = encodeURIComponent(origin + ', Pune, Maharashtra');
     const encodedDest = encodeURIComponent(destination + ', Pune, Maharashtra');
     
+    // Official Google Maps Embed syntax for Transit routes
     const url = `https://www.google.com/maps/embed/v1/directions?key=${apiKey}&origin=${encodedOrigin}&destination=${encodedDest}&mode=transit`;
     setMapUrl(url);
   };
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto h-[calc(100vh-120px)] flex flex-col">
+    <div className="space-y-6 max-w-6xl mx-auto flex flex-col h-[calc(100vh-100px)]">
       <div>
         <h1 className="text-3xl font-bold text-slate-800">Route Planner</h1>
-        <p className="text-slate-500 mt-1">Find the best transit routes across Pune.</p>
+        <p className="text-slate-500 mt-1">Find the best transit routes across Pune using Google Maps.</p>
       </div>
 
       <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
@@ -34,8 +35,8 @@ export default function RoutePlanner() {
               type="text" 
               value={origin}
               onChange={(e) => setOrigin(e.target.value)}
-              placeholder="E.g., Swargate" 
-              className="w-full p-3 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 text-slate-800"
+              placeholder="E.g., Swargate Station" 
+              className="w-full p-3 border border-slate-300 bg-slate-50 rounded-lg focus:outline-none focus:border-blue-500 text-slate-800"
             />
           </div>
           <div className="flex-1">
@@ -45,11 +46,11 @@ export default function RoutePlanner() {
               value={destination}
               onChange={(e) => setDestination(e.target.value)}
               placeholder="E.g., Hinjewadi Phase 1" 
-              className="w-full p-3 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 text-slate-800"
+              className="w-full p-3 border border-slate-300 bg-slate-50 rounded-lg focus:outline-none focus:border-blue-500 text-slate-800"
             />
           </div>
           <div className="flex items-end">
-            <button type="submit" className="w-full md:w-auto px-8 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2">
+            <button type="submit" className="w-full md:w-auto px-8 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 shadow-md">
               <Navigation size={18} />
               Get Directions
             </button>
@@ -57,7 +58,7 @@ export default function RoutePlanner() {
         </form>
       </div>
 
-      <div className="flex-1 bg-slate-100 rounded-xl border border-slate-200 overflow-hidden relative min-h-[400px]">
+      <div className="flex-1 bg-slate-200 rounded-xl border border-slate-300 overflow-hidden relative shadow-inner">
         {mapUrl ? (
           <iframe
             width="100%"
@@ -66,12 +67,13 @@ export default function RoutePlanner() {
             loading="lazy"
             allowFullScreen
             src={mapUrl}
-            title="Google Maps Directions"
+            title="Google Maps Transit Directions"
           ></iframe>
         ) : (
-          <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400">
-            <Map size={48} className="mb-4 opacity-50" />
-            <p>Enter your origin and destination to view the route.</p>
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-500">
+            <Map size={64} className="mb-4 opacity-40 text-blue-500" />
+            <p className="text-lg font-medium">Enter your origin and destination above</p>
+            <p className="text-sm mt-1">Live traffic and transit routes will load here.</p>
           </div>
         )}
       </div>

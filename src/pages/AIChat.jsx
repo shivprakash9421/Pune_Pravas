@@ -1,47 +1,117 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Send, Bot, User } from 'lucide-react';
 
 export default function AIChat() {
-  const [messages] = useState([
-    { role: 'ai', content: 'Hello! I am your Pune Pravas assistant. I can help you plan routes, check ticket balances, or find parking.' },
-    { role: 'user', content: 'What is the fastest way from FC Road to Viman Nagar right now?' },
-    { role: 'ai', content: 'Currently, the fastest route (45 mins) is taking an Auto to Shivajinagar Metro Station, riding the Aqua line to Ramwadi, and then taking a quick feeder bus. The total cost will be approximately ₹80.' }
+  const [messages, setMessages] = useState([
+    { text: "Namaskar! I am your Pune Pravas AI Assistant. How can I help you navigate the city today?", sender: "ai" }
   ]);
+  const [input, setInput] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const messagesEndRef = useRef(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  const generateAIResponse = (query) => {
+    const q = query.toLowerCase();
+    if (q.includes('ticket') || q.includes('buy') || q.includes('pass')) {
+      return "You can buy Metro and Local train tickets, as well as PMPML digital passes, directly from their respective tabs in the sidebar menu. Simply select your origin and destination, and pay securely via UPI!";
+    } else if (q.includes('time') || q.includes('last train') || q.includes('first train')) {
+      return "The Pune Metro operates from 6:00 AM to 10:00 PM daily. The Pune-Lonavala local trains run from roughly 12:15 AM to 11:30 PM. Let me know which specific route you need!";
+    } else if (q.includes('airport') || q.includes('aeromall')) {
+      return "To reach Pune Airport (Lohegaon), you can take the Aqua Line Metro to Ramwadi Station, and from there, PMPML feeder buses (Route 34) run continuously to the Aeromall.";
+    } else {
+      return "I can help you with ticket bookings, live timetables, and transit routes around Pune. Could you provide a bit more detail about your journey?";
+    }
+  };
+
+  const handleSend = (e) => {
+    e.preventDefault();
+    if (!input.trim()) return;
+
+    const userMessage = { text: input, sender: 'user' };
+    setMessages(prev => [...prev, userMessage]);
+    setInput('');
+    setIsTyping(true);
+
+    setTimeout(() => {
+      const aiMessage = { text: generateAIResponse(userMessage.text), sender: 'ai' };
+      setMessages(prev => [...prev, aiMessage]);
+      setIsTyping(false);
+    }, 1000);
+  };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-6rem)] animate-fade-in max-w-4xl mx-auto">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight text-[var(--color-text-primary)]">AI Assistant</h1>
-        <p className="text-[var(--color-text-secondary)] mt-1 mb-6">Ask anything about Pune transit and your wallet.</p>
+    <div className="max-w-4xl mx-auto h-[calc(100vh-100px)] flex flex-col bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+      <div className="bg-slate-900 p-4 flex items-center gap-3">
+        <div className="p-2 bg-indigo-500 rounded-full text-white">
+          <Bot size={24} />
+        </div>
+        <div>
+          <h2 className="text-white font-bold">Pravas AI Guide</h2>
+          <p className="text-slate-400 text-xs">Always online • Ask me about routes & tickets</p>
+        </div>
       </div>
 
-      <div className="flex-1 bg-[var(--color-surface)] rounded-[var(--radius-lg)] shadow-[var(--shadow-card)] border border-[var(--color-border)] flex flex-col overflow-hidden">
-        
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          {messages.map((msg, idx) => (
-            <div key={idx} className={`flex gap-4 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
-              <div className={`h-10 w-10 shrink-0 rounded-full flex items-center justify-center ${msg.role === 'ai' ? 'bg-[var(--color-primary-soft)] text-[var(--color-primary)]' : 'bg-[var(--color-navy)] text-white'}`}>
-                {msg.role === 'ai' ? <Bot size={20} /> : <User size={20} />}
+      <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50">
+        {messages.map((msg, idx) => (
+          <div key={idx} className={`flex gap-4 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+            {msg.sender === 'ai' && (
+              <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0 mt-1">
+                <Bot size={18} className="text-indigo-600" />
               </div>
-              <div className={`max-w-[75%] p-4 rounded-2xl ${msg.role === 'user' ? 'bg-[var(--color-bg-subtle)] text-[var(--color-text-primary)] rounded-tr-none' : 'bg-white border border-[var(--color-border)] text-[var(--color-text-secondary)] shadow-sm rounded-tl-none'}`}>
-                <p className="leading-relaxed text-sm">{msg.content}</p>
-              </div>
+            )}
+            <div className={`max-w-[75%] p-4 rounded-2xl text-sm leading-relaxed shadow-sm ${
+              msg.sender === 'user' 
+                ? 'bg-blue-600 text-white rounded-tr-sm' 
+                : 'bg-white border border-slate-200 text-slate-700 rounded-tl-sm'
+            }`}>
+              {msg.text}
             </div>
-          ))}
-        </div>
-
-        <div className="p-4 bg-[var(--color-bg)] border-t border-[var(--color-border)]">
-          <div className="relative flex items-center">
-            <input 
-              type="text" 
-              placeholder="Ask about routes, fares, or parking..." 
-              className="w-full pl-4 pr-12 py-4 bg-white border border-[var(--color-border-strong)] rounded-full focus:outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] shadow-sm transition-all"
-            />
-            <button className="absolute right-2 h-10 w-10 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white rounded-full flex items-center justify-center transition-colors">
-              <Send size={18} className="ml-1" />
-            </button>
+            {msg.sender === 'user' && (
+              <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 mt-1">
+                <User size={18} className="text-blue-600" />
+              </div>
+            )}
           </div>
-        </div>
+        ))}
+        {isTyping && (
+          <div className="flex gap-4 justify-start animate-pulse">
+            <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
+               <Bot size={18} className="text-indigo-600" />
+            </div>
+            <div className="bg-white border border-slate-200 p-4 rounded-2xl rounded-tl-sm shadow-sm flex gap-1">
+              <span className="w-2 h-2 bg-slate-400 rounded-full"></span>
+              <span className="w-2 h-2 bg-slate-400 rounded-full"></span>
+              <span className="w-2 h-2 bg-slate-400 rounded-full"></span>
+            </div>
+          </div>
+        )}
+        <div ref={messagesEndRef} />
+      </div>
+
+      <div className="p-4 bg-white border-t border-slate-200">
+        <form onSubmit={handleSend} className="flex gap-2">
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Ask about tickets, timings, or routes..."
+            className="flex-1 p-3 border border-slate-300 bg-slate-50 rounded-full focus:outline-none focus:border-indigo-500 px-6 text-slate-700"
+          />
+          <button 
+            type="submit" 
+            disabled={!input.trim() || isTyping}
+            className="p-3 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 disabled:opacity-50 transition-colors shadow-md"
+          >
+            <Send size={20} />
+          </button>
+        </form>
       </div>
     </div>
   );
