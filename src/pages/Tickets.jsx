@@ -11,22 +11,36 @@ const ICONS = {
 };
 
 export default function Tickets() {
-  const [tickets, setTickets] = useState([]);
+  const [dbTickets, setDbTickets] = useState([]);
+  const [localTickets, setLocalTickets] = useState([]);
   const [selectedTicket, setSelectedTicket] = useState(null);
 
-  useEffect(() => subscribeToMyTickets(setTickets), []);
+  useEffect(() => {
+    try {
+      const unsubscribe = subscribeToMyTickets(setDbTickets);
+      return () => { if(typeof unsubscribe === 'function') unsubscribe(); };
+    } catch(err) {
+      console.warn("Firebase tickets offline");
+    }
+  }, []);
+
+  useEffect(() => {
+    const stored = JSON.parse(localStorage.getItem('local_tickets') || '[]');
+    setLocalTickets(stored);
+  }, []);
+
+  // Merge and sort all tickets safely
+  const allTickets = [...dbTickets, ...localTickets].sort((a,b) => new Date(b.purchasedAt) - new Date(a.purchasedAt));
+  const uniqueTickets = Array.from(new Map(allTickets.map(t => [t.id, t])).values());
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 pb-20">
       <h1 className="text-3xl font-bold text-slate-800">My Tickets</h1>
       
       <div className="grid md:grid-cols-2 gap-8">
-        {/* Ticket List */}
         <div className="space-y-4">
-          {tickets.map(ticket => (
-            <div 
-              key={ticket.id} 
-              onClick={() => setSelectedTicket(ticket)}
+          {uniqueTickets.map(ticket => (
+            <div key={ticket.id} onClick={() => setSelectedTicket(ticket)}
               className={`p-4 bg-white rounded-xl shadow-sm border-2 cursor-pointer transition-all ${
                 selectedTicket?.id === ticket.id ? 'border-blue-500' : 'border-slate-200'
               }`}
@@ -38,25 +52,21 @@ export default function Tickets() {
                     {ticket.route === 'Local Train' ? 'Pune Local' : ticket.type}
                   </span>
                 </div>
-                <span className="px-3 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full">
-                  {ticket.status}
-                </span>
+                <span className="px-3 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full">{ticket.status}</span>
               </div>
               <p className="text-sm font-semibold text-slate-700">{ticket.from} ➔ {ticket.to}</p>
               <p className="text-xs text-slate-500 mt-1">₹{ticket.fare} • {new Date(ticket.purchasedAt).toLocaleString()}</p>
             </div>
           ))}
-          {tickets.length === 0 && <p className="text-slate-500">No tickets purchased yet.</p>}
+          {uniqueTickets.length === 0 && <p className="text-slate-500">No tickets purchased yet.</p>}
         </div>
 
-        {/* Selected Ticket View */}
         {selectedTicket && (
           <div className="bg-white rounded-xl shadow-lg border border-slate-200 p-8 text-center sticky top-24 h-fit animate-fade-in">
             <h2 className="text-xl font-bold text-slate-800 mb-6 uppercase tracking-widest border-b pb-4">
               {selectedTicket.route === 'Local Train' ? 'Unreserved Ticketing System' : 'Pune Metro QR Ticket'}
             </h2>
             
-            {/* Conditional Ticket Generation */}
             <div className="flex justify-center mb-6">
               {selectedTicket.type === 'metro' && selectedTicket.route !== 'Local Train' ? (
                 <div className="p-4 border-4 border-purple-100 rounded-xl bg-white shadow-inner">
