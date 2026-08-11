@@ -2,9 +2,9 @@ import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
-// Your Firebase config
+// We are HARDCODING this so Render never crashes looking for a .env file again.
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  apiKey: "PASTE_YOUR_ACTUAL_API_KEY_HERE", // <--- Replace this string with your real API key
   authDomain: "mobilityos-3c7e5.firebaseapp.com",
   projectId: "mobilityos-3c7e5",
   storageBucket: "mobilityos-3c7e5.firebasestorage.app",
@@ -13,8 +13,6 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-
 export const auth = getAuth(app);
 export const db = getFirestore(app);
-// ADD THIS LINE FOR GOOGLE LOGIN:
 export const googleProvider = new GoogleAuthProvider();
