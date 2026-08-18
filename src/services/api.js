@@ -1,9 +1,6 @@
 import { getAuth } from "firebase/auth";
 
-/**
- * Reusable function to send authenticated requests to Firebase Cloud Functions
- */
-export const fetchSecureData = async (endpoint, method = "GET", body = null) => {
+export const fetchSecureData = async (endpoint, method = "GET", body = null, timeoutMs = 60000) => {
   const auth = getAuth();
   const user = auth.currentUser;
 
@@ -11,32 +8,40 @@ export const fetchSecureData = async (endpoint, method = "GET", body = null) => 
     throw new Error("No user is currently logged in.");
   }
 
-  // Get fresh Firebase ID Token (JWT)
   const token = await user.getIdToken();
-
-  // Region is asia-south1
-  // Replace with your actual Render backend URL (No slash at the end!)
   const BASE_URL = "https://punepravas.onrender.com";
   const headers = {
     "Authorization": `Bearer ${token}`,
     "Content-Type": "application/json"
   };
 
-  const options = {
-    method,
-    headers,
-  };
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
 
-  if (body) {
-    options.body = JSON.stringify(body);
+  try {
+    const options = { method, headers, signal: controller.signal };
+    if (body) options.body = JSON.stringify(body);
+
+    const response = await fetch(`${BASE_URL}${endpoint}`, options);
+
+    if (!response.ok) {
+      let message = "API request failed";
+      try {
+        const errorData = await response.json();
+        message = errorData.error || message;
+      } catch {
+        // backend returned a non-JSON error page — keep the generic message
+      }
+      throw new Error(message);
+    }
+
+    return await response.json();
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      throw new Error('Request timed out — the server may be waking up.');
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
   }
-
-  const response = await fetch(`${BASE_URL}${endpoint}`, options);
-  
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.error || "API request failed");
-  }
-
-  return response.json();
 };
