@@ -1,4 +1,8 @@
-const express = require('express');
+
+process.on('uncaughtException', (err) => {
+  console.error('Fatal startup error:', err);
+  process.exit(1);
+});const express = require('express');
 const cors = require('cors');
 require('./src/lib/firebaseAdmin'); // initializes admin once, shared everywhere
 
@@ -24,3 +28,6 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
+const mapplsRoutes = require('./src/routes/mappls.routes');
+// ...
+app.use('/mappls', mapplsRoutes);
