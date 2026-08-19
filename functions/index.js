@@ -10,6 +10,7 @@ const usersRoutes = require('./src/routes/users.routes');
 const ticketsRoutes = require('./src/routes/tickets.routes');
 const adminRoutes = require('./src/routes/admin.routes');
 const pmpmlRoutes = require('./src/routes/pmpml.routes');
+const localTrainRoutes = require('./src/routes/local-train.routes')
 
 const app = express();
 app.use(cors({ origin: true }));
@@ -23,6 +24,7 @@ app.use('/users', usersRoutes);
 app.use('/tickets', ticketsRoutes);
 app.use('/admin', adminRoutes);
 app.use('/pmpml', pmpmlRoutes);
+app.use('/local-train', localTrainRoutes);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
